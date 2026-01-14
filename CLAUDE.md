@@ -68,7 +68,7 @@ This document records how Claude AI was used in developing this project, followi
 **Goal:** Production readiness
 
 **Implementation:**
-- 14 end-to-end handler scenarios (now in BDD) — total: 72 BDD scenarios
+- 14 end-to-end handler scenarios (now in BDD) — total: 86 tests (72 BDD scenarios + integration coverage)
 - Secure token storage with python-dotenv
 - Input validation for all user inputs
 - SQL injection prevention
@@ -96,11 +96,10 @@ This document records how Claude AI was used in developing this project, followi
 ### Remaining Phases
 - E5: Payment confirmation flow
 - E6: Debt aging (days since order)
-- E7: Group isolation by chat_id
 
 ## Test Coverage
 
-### All Features (72 BDD scenarios)
+### All Features (86 tests; 72 BDD scenarios + supporting coverage)
 
 | Feature | Scenarios | Purpose |
 |---------|-----------|---------|
@@ -146,28 +145,24 @@ This document records how Claude AI was used in developing this project, followi
 | 12 | 9d8b6f5 | security | Remove .specstory files, add .env for bot token |
 | 13 | ca22e0b | fix | Update help formatting and /owed netting display |
 | 14 | ed62725 | feat | Add /delete command to remove orders by creator |
-| 15 | CURRENT | feat | Chat isolation for multi-group support |
+| 15 | CURRENT | feat | Chat isolation + BDD bot integration + SQLite migration guard + pip-audit clean |
 
-## Current Work: Phase E7 - Chat Isolation (IN PROGRESS) 🚧
+## Phase E7 - Chat Isolation (COMPLETE) ✅
 
 **Goal:** Allow bot to work in multiple Telegram groups simultaneously
 
-**Status:** Implementation complete, all 53 BDD tests passing
+**Status:** All 86 tests passing (BDD scenarios converted for bot integration); bot manually tested; pip-audit clean
 
 **Changes made:**
 - Added `chat_id` field to Order, Debt, Payment models (default 0 for backwards compatibility)
-- Database migrations: added chat_id columns with indexes to orders, debts, payments tables
+- Database migrations: added chat_id columns with indexes to orders, debts, payments tables; guard ensures columns exist before index creation on older DBs
 - Changed debt primary key to (debtor, creditor, chat_id) to allow same users in different groups
 - Updated InMemoryRepository and SQLiteRepository to filter by chat_id
 - Modified all service methods (20+ methods) to accept and filter by chat_id parameter
 - Updated all bot handlers to extract message.chat.id and pass to services
+- Converted bot integration tests to BDD (.feature + steps); removed legacy integration test file
 - Fixed sqlite3.Row access issues (Row doesn't have .get() method)
-
-**Next steps:**
-1. Write BDD scenarios for chat isolation feature
-2. Convert test_bot_integration.py (14 tests) to BDD format
-3. Test multi-chat isolation manually
-4. Commit changes with detailed description
+- Security: ran `pip-audit` (2.10.0) — no known vulnerabilities
 
 ## Lessons Learned
 
