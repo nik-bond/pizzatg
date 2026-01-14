@@ -21,85 +21,82 @@ This document records how Claude AI was used in developing this project, followi
 | Decimal for money | Avoid floating-point precision issues |
 | Russian feature files | Match user language, clearer requirements |
 
-## AI Collaboration Sessions
+## Development Evolution
 
-### Session 1: Project Setup
+### MVP (COMPLETE) ✅
+**Goal:** Core functionality for shared expense tracking
 
-**Goal:** Establish project structure and MVP feature files
+**Implementation:**
+- Order creation with equal split
+- Debt calculation with netting
+- Payment recording
+- Basic debt queries
+- 31 BDD scenarios in 4 feature files
 
-**What Claude did:**
-- Analyzed exam requirements from GitHub
-- Designed clean architecture (domain/persistence/bot)
-- Created 4 BDD feature files with 31 scenarios
-- Wrote step definitions that call real domain code
-- Set up pytest-bdd configuration
+**Key decisions:**
+- MVP scope limited to single group
+- No confirmation flow (simpler implementation)
+- 2 decimal places, standard rounding
 
-**Key decisions made:**
-1. MVP scope limited to: order creation, debt calculation, payments, queries
-2. Telegram integration deferred to post-MVP
-3. Security validation built into feature scenarios
-4. Rounding strategy: 2 decimal places, standard rounding
+### Phase E1: SQLite Persistence (COMPLETE) ✅
+**Goal:** Data persistence across restarts
 
-**Trade-offs:**
-- Feature files in Russian (matches domain, but limits international use)
-- No confirmation flow in MVP (simpler, but less secure)
-- Single group assumed (simpler, multi-group is post-MVP)
-
-### Session 2: Bot Integration Testing
-
-**Goal:** Add comprehensive integration tests for Telegram bot handlers
-
-**What Claude did:**
-- Created test_bot_integration.py with 14 end-to-end tests
-- Built helper functions for mocking aiogram Message objects
-- Implemented `call_handler()` utility to invoke specific handlers
-- Validated complete workflows from message input to bot response
-
-**Test Categories:**
-1. **Order Flow (3 tests)**: Order creation with/without description, explicit payer
-2. **Payment Flow (2 tests)**: Full and partial debt payments
-3. **Query Commands (3 tests)**: /debts, /owed, no debts scenarios
-4. **Command Handlers (2 tests)**: /start and /help commands
-5. **Error Handling (4 tests)**: Invalid amounts, payment errors, missing username
+**Implementation:**
+- SQLite repository implementation
+- Transaction management with ACID guarantees
+- Database migrations for schema updates
+- Concurrent access safety
 
 **Key insights:**
-- Router observers require accessing `.handlers` attribute, not direct iteration
-- Payer is automatically included in participants by OrderService
-- Parser extracts absolute value from negative numbers (e.g., "-100" → "100")
-- Direct handler calls with mock Messages more reliable than full dispatcher testing
+- Repository pattern enables easy swapping between in-memory and SQLite
+- Migrations can be handled inline during initialization
 
-**Result:** All 67 tests pass (53 BDD + 14 integration)
+### Phase E2: Telegram Bot (COMPLETE) ✅
+**Goal:** User interface via Telegram
 
-### Session 3: Feature Enhancements & Security
+**Implementation:**
+- aiogram handlers for all commands
+- Message parsing for orders and payments
+- Response formatting with emoji
+- Explicit payer syntax: `payer:@username`
 
-**Goal:** Production readiness and user-requested features
+**Key decisions:**
+- First mentioned user defaults to payer
+- Parser extracts absolute values from negative inputs
 
-**What Claude did:**
-1. **Security fixes:**
-   - Removed .specstory files containing flagged session IDs
-   - Implemented python-dotenv for secure bot token storage in .env file
-   - Added .env to .gitignore
+### Phase E3: Security & Testing (COMPLETE) ✅
+**Goal:** Production readiness
 
-2. **UX improvements:**
-   - Fixed help message formatting with proper spacing
-   - Updated /owed command to display netted debts (eliminate offsetting debts)
-   - Fixed payer logic to use first mentioned user instead of message sender
-
-3. **/delete command implementation:**
-   - Added `created_by` field to Order model
-   - Updated OrderService to track order creator separate from payer
-   - Implemented database migration to add `created_by` column
-   - Created /delete handler to remove last order by creator
-   - Updated all repository methods to handle new field
+**Implementation:**
+- 14 end-to-end integration tests (total: 67 tests)
+- Secure token storage with python-dotenv
+- Input validation for all user inputs
+- SQL injection prevention
 
 **Key insights:**
-- GitHub's secret scanning detected session IDs in .specstory files
-- python-dotenv provides clean environment variable management
-- Netting debts significantly improves /owed readability
+- Direct handler testing more reliable than full dispatcher
+- Router observers require `.handlers` attribute access
+- GitHub secret scanning detected session IDs in .specstory files
+
+### Phase E4: Feature Enhancements (COMPLETE) ✅
+**Goal:** Improved UX and order management
+
+**Implementation:**
+- `/delete` command to remove orders by creator
+- Order tracking with `created_by` field
+- Database migration for new column
+- Improved help message clarity
+- Netted debt display in `/owed` command
+
+**Key insights:**
 - Tracking creator vs payer enables better deletion control
-- Database migrations can be handled inline during repository initialization
+- Netting debts significantly improves readability
+- Consolidated debt views reduce confusion
 
-**Result:** Production-ready bot with secure token storage and full CRUD for orders
+### Remaining Phases
+- E5: Payment confirmation flow
+- E6: Debt aging (days since order)
+- E7: Group isolation by chat_id
 
 ## Test Coverage
 
@@ -149,52 +146,14 @@ This document records how Claude AI was used in developing this project, followi
 | 13 | ca22e0b | fix | Update help formatting and /owed netting display |
 | 14 | ed62725 | feat | Add /delete command to remove orders by creator |
 
-## Evolution Plan
-
-### MVP (COMPLETE) ✅
-- Order creation with equal split
-- Debt tracking
-- Payment recording
-- Basic queries
-
-### Phase E1: SQLite Persistence (COMPLETE) ✅
-- SQLite repository implementation
-- Data persists across restarts
-- Concurrent access safety tested
-
-### Phase E2: Telegram Bot (COMPLETE) ✅
-- aiogram handlers for all commands
-- Message parsing for orders and payments
-- Response formatting with emoji
-
-### Phase E3: Security Review (COMPLETE) ✅
-- Threat model documented
-- Input validation verified
-- SQL injection prevention confirmed
-- Abuse cases identified with mitigations
-
-### Phase E4: Bot Integration Testing (COMPLETE) ✅
-- Created 14 end-to-end integration tests
-- Direct handler testing with mock Message objects
-- Full workflow validation: message → handler → service → response
-- Error handling coverage for all edge cases
-- All 67 tests passing (53 BDD + 14 integration)
-
-### Remaining Phases
-- E5: Payment confirmation flow
-- E6: Debt aging (days since order)
-- E7: Group isolation by chat_id
-
-## Final Test Count: 67 tests (53 BDD scenarios + 14 integration tests)
-
 ## Lessons Learned
 
-### Session 1 Insights
+**pytest-bdd language directive**: Using `# language: ru` requires Russian Gherkin keywords. Simpler to use English keywords with Russian content.
 
-1. **pytest-bdd language directive**: Using `# language: ru` requires Russian Gherkin keywords (Функция, Сценарий). Simpler to use English keywords with Russian content.
+**Repository pattern**: InMemoryRepository enables fast isolated tests while SQLite can be swapped in for production.
 
-2. **Step definition reuse**: pytest-bdd requires unique step definitions per test file unless using conftest.py fixtures carefully.
+**Decimal precision**: Using `Decimal(str(float_value))` ensures accurate conversion from float test parameters.
 
-3. **Decimal precision**: Using `Decimal(str(float_value))` ensures accurate conversion from float test parameters.
+**Router testing**: Direct handler calls with mock Messages more reliable than full dispatcher testing.
 
-4. **Repository pattern**: InMemoryRepository enables fast isolated tests while SQLite can be swapped in for integration tests.
+**Security**: GitHub secret scanning is aggressive - avoid committing any files with session-like identifiers.
