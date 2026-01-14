@@ -71,6 +71,7 @@ class SQLiteRepository:
                     participants TEXT NOT NULL,
                     per_person_amount TEXT NOT NULL,
                     created_by TEXT NOT NULL DEFAULT '',
+                    chat_id INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL,
                     FOREIGN KEY (payer) REFERENCES users(username)
                 );
@@ -80,9 +81,10 @@ class SQLiteRepository:
                     creditor TEXT NOT NULL,
                     amount TEXT NOT NULL,
                     description TEXT NOT NULL DEFAULT '',
+                    chat_id INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
-                    PRIMARY KEY (debtor, creditor),
+                    PRIMARY KEY (debtor, creditor, chat_id),
                     FOREIGN KEY (debtor) REFERENCES users(username),
                     FOREIGN KEY (creditor) REFERENCES users(username)
                 );
@@ -92,6 +94,7 @@ class SQLiteRepository:
                     debtor TEXT NOT NULL,
                     creditor TEXT NOT NULL,
                     amount TEXT NOT NULL,
+                    chat_id INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL,
                     FOREIGN KEY (debtor) REFERENCES users(username),
                     FOREIGN KEY (creditor) REFERENCES users(username)
@@ -99,7 +102,10 @@ class SQLiteRepository:
 
                 CREATE INDEX IF NOT EXISTS idx_debts_debtor ON debts(debtor);
                 CREATE INDEX IF NOT EXISTS idx_debts_creditor ON debts(creditor);
+                CREATE INDEX IF NOT EXISTS idx_debts_chat ON debts(chat_id);
                 CREATE INDEX IF NOT EXISTS idx_orders_payer ON orders(payer);
+                CREATE INDEX IF NOT EXISTS idx_orders_chat ON orders(chat_id);
+                CREATE INDEX IF NOT EXISTS idx_payments_chat ON payments(chat_id);
             """)
             
             # Migration: Add created_by column if it doesn't exist
@@ -108,6 +114,22 @@ class SQLiteRepository:
             except sqlite3.OperationalError:
                 # Column doesn't exist, add it
                 conn.execute("ALTER TABLE orders ADD COLUMN created_by TEXT NOT NULL DEFAULT ''")
+            
+            # Migration: Add chat_id columns if they don't exist
+            try:
+                conn.execute("SELECT chat_id FROM orders LIMIT 1")
+            except sqlite3.OperationalError:
+                conn.execute("ALTER TABLE orders ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0")
+            
+            try:
+                conn.execute("SELECT chat_id FROM debts LIMIT 1")
+            except sqlite3.OperationalError:
+                conn.execute("ALTER TABLE debts ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0")
+            
+            try:
+                conn.execute("SELECT chat_id FROM payments LIMIT 1")
+            except sqlite3.OperationalError:
+                conn.execute("ALTER TABLE payments ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0")
 
     # -------------------------------------------------------------------------
     # User operations
@@ -153,8 +175,8 @@ class SQLiteRepository:
 
             conn.execute("""
                 INSERT OR REPLACE INTO orders
-                (id, description, amount, payer, participants, per_person_amount, created_by, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (id, description, amount, payer, participants, per_person_amount, created_by, chat_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 order.id,
                 order.description,
@@ -163,6 +185,7 @@ class SQLiteRepository:
                 participants_str,
                 str(order.per_person_amount),
                 order.created_by,
+                order.chat_id,
                 order.created_at.isoformat()
             ))
 
@@ -185,7 +208,8 @@ class SQLiteRepository:
                 payer=row['payer'],
                 participants=row['participants'].split(','),
                 per_person_amount=Decimal(row['per_person_amount']),
-                created_by=row.get('created_by', ''),
+                created_by=row['created_by'] if 'created_by' in row.keys() else '',
+                chat_id=row['chat_id'] if 'chat_id' in row.keys() else 0,
                 created_at=datetime.fromisoformat(row['created_at'])
             )
 
@@ -202,7 +226,8 @@ class SQLiteRepository:
                     payer=row['payer'],
                     participants=row['participants'].split(','),
                     per_person_amount=Decimal(row['per_person_amount']),
-                    created_by=row.get('created_by', ''),
+                    created_by=row['created_by'] if 'created_by' in row.keys() else '',
+                    chat_id=row['chat_id'] if 'chat_id' in row.keys() else 0,
                     created_at=datetime.fromisoformat(row['created_at'])
                 ))
             return orders
@@ -225,23 +250,24 @@ class SQLiteRepository:
 
             conn.execute("""
                 INSERT OR REPLACE INTO debts
-                (debtor, creditor, amount, description, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (debtor, creditor, amount, description, chat_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
                 debt.debtor,
                 debt.creditor,
                 str(debt.amount),
                 debt.description,
+                debt.chat_id,
                 debt.created_at.isoformat(),
                 debt.updated_at.isoformat()
             ))
 
-    def get_debt(self, debtor: str, creditor: str) -> Optional[Debt]:
-        """Get debt between two users."""
+    def get_debt(self, debtor: str, creditor: str, chat_id: int = 0) -> Optional[Debt]:
+        """Get debt between two users in a specific chat."""
         with self._transaction() as conn:
             cursor = conn.execute(
-                "SELECT * FROM debts WHERE debtor = ? AND creditor = ?",
-                (debtor, creditor)
+                "SELECT * FROM debts WHERE debtor = ? AND creditor = ? AND chat_id = ?",
+                (debtor, creditor, chat_id)
             )
             row = cursor.fetchone()
 
@@ -253,16 +279,17 @@ class SQLiteRepository:
                 creditor=row['creditor'],
                 amount=Decimal(row['amount']),
                 description=row['description'] if 'description' in row.keys() else '',
+                chat_id=row['chat_id'] if 'chat_id' in row.keys() else 0,
                 created_at=datetime.fromisoformat(row['created_at']),
                 updated_at=datetime.fromisoformat(row['updated_at'])
             )
 
-    def get_debts_by_debtor(self, debtor: str) -> list[Debt]:
-        """Get all debts where user is debtor."""
+    def get_debts_by_debtor(self, debtor: str, chat_id: int = 0) -> list[Debt]:
+        """Get all debts where user is debtor in a specific chat."""
         with self._transaction() as conn:
             cursor = conn.execute(
-                "SELECT * FROM debts WHERE debtor = ?",
-                (debtor,)
+                "SELECT * FROM debts WHERE debtor = ? AND chat_id = ?",
+                (debtor, chat_id)
             )
             return [
                 Debt(
@@ -270,18 +297,19 @@ class SQLiteRepository:
                     creditor=row['creditor'],
                     amount=Decimal(row['amount']),
                     description=row['description'] if 'description' in row.keys() else '',
+                    chat_id=row['chat_id'] if 'chat_id' in row.keys() else 0,
                     created_at=datetime.fromisoformat(row['created_at']),
                     updated_at=datetime.fromisoformat(row['updated_at'])
                 )
                 for row in cursor.fetchall()
             ]
 
-    def get_debts_by_creditor(self, creditor: str) -> list[Debt]:
-        """Get all debts where user is creditor."""
+    def get_debts_by_creditor(self, creditor: str, chat_id: int = 0) -> list[Debt]:
+        """Get all debts where user is creditor in a specific chat."""
         with self._transaction() as conn:
             cursor = conn.execute(
-                "SELECT * FROM debts WHERE creditor = ?",
-                (creditor,)
+                "SELECT * FROM debts WHERE creditor = ? AND chat_id = ?",
+                (creditor, chat_id)
             )
             return [
                 Debt(
@@ -289,34 +317,36 @@ class SQLiteRepository:
                     creditor=row['creditor'],
                     amount=Decimal(row['amount']),
                     description=row['description'] if 'description' in row.keys() else '',
+                    chat_id=row['chat_id'] if 'chat_id' in row.keys() else 0,
                     created_at=datetime.fromisoformat(row['created_at']),
                     updated_at=datetime.fromisoformat(row['updated_at'])
                 )
                 for row in cursor.fetchall()
             ]
 
-    def get_all_debts(self) -> list[Debt]:
-        """Get all debts."""
+    def get_all_debts(self, chat_id: int = 0) -> list[Debt]:
+        """Get all debts in a specific chat."""
         with self._transaction() as conn:
-            cursor = conn.execute("SELECT * FROM debts")
+            cursor = conn.execute("SELECT * FROM debts WHERE chat_id = ?", (chat_id,))
             return [
                 Debt(
                     debtor=row['debtor'],
                     creditor=row['creditor'],
                     amount=Decimal(row['amount']),
                     description=row['description'] if 'description' in row.keys() else '',
+                    chat_id=row['chat_id'] if 'chat_id' in row.keys() else 0,
                     created_at=datetime.fromisoformat(row['created_at']),
                     updated_at=datetime.fromisoformat(row['updated_at'])
                 )
                 for row in cursor.fetchall()
             ]
 
-    def delete_debt(self, debtor: str, creditor: str) -> None:
+    def delete_debt(self, debtor: str, creditor: str, chat_id: int = 0) -> None:
         """Delete a debt (when fully paid)."""
         with self._transaction() as conn:
             conn.execute(
-                "DELETE FROM debts WHERE debtor = ? AND creditor = ?",
-                (debtor, creditor)
+                "DELETE FROM debts WHERE debtor = ? AND creditor = ? AND chat_id = ?",
+                (debtor, creditor, chat_id)
             )
 
     # -------------------------------------------------------------------------
@@ -331,22 +361,23 @@ class SQLiteRepository:
             self._ensure_user(conn, payment.creditor)
 
             conn.execute("""
-                INSERT INTO payments (id, debtor, creditor, amount, created_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO payments (id, debtor, creditor, amount, chat_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
             """, (
                 payment.id,
                 payment.debtor,
                 payment.creditor,
                 str(payment.amount),
+                payment.chat_id,
                 payment.created_at.isoformat()
             ))
 
-    def get_payments_by_debtor(self, debtor: str) -> list[Payment]:
-        """Get all payments made by user."""
+    def get_payments_by_debtor(self, debtor: str, chat_id: int = 0) -> list[Payment]:
+        """Get all payments made by user in a specific chat."""
         with self._transaction() as conn:
             cursor = conn.execute(
-                "SELECT * FROM payments WHERE debtor = ? ORDER BY created_at DESC",
-                (debtor,)
+                "SELECT * FROM payments WHERE debtor = ? AND chat_id = ? ORDER BY created_at DESC",
+                (debtor, chat_id)
             )
             return [
                 Payment(
@@ -354,17 +385,18 @@ class SQLiteRepository:
                     debtor=row['debtor'],
                     creditor=row['creditor'],
                     amount=Decimal(row['amount']),
+                    chat_id=row['chat_id'] if 'chat_id' in row.keys() else 0,
                     created_at=datetime.fromisoformat(row['created_at'])
                 )
                 for row in cursor.fetchall()
             ]
 
-    def get_payments_by_creditor(self, creditor: str) -> list[Payment]:
-        """Get all payments received by user."""
+    def get_payments_by_creditor(self, creditor: str, chat_id: int = 0) -> list[Payment]:
+        """Get all payments received by user in a specific chat."""
         with self._transaction() as conn:
             cursor = conn.execute(
-                "SELECT * FROM payments WHERE creditor = ? ORDER BY created_at DESC",
-                (creditor,)
+                "SELECT * FROM payments WHERE creditor = ? AND chat_id = ? ORDER BY created_at DESC",
+                (creditor, chat_id)
             )
             return [
                 Payment(
@@ -372,6 +404,7 @@ class SQLiteRepository:
                     debtor=row['debtor'],
                     creditor=row['creditor'],
                     amount=Decimal(row['amount']),
+                    chat_id=row['chat_id'] if 'chat_id' in row.keys() else 0,
                     created_at=datetime.fromisoformat(row['created_at'])
                 )
                 for row in cursor.fetchall()

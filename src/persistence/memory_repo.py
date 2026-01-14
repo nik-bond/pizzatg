@@ -20,7 +20,7 @@ class InMemoryRepository:
 
     def __init__(self):
         self._orders: dict[str, Order] = {}
-        self._debts: dict[tuple[str, str], Debt] = {}  # (debtor, creditor) -> Debt
+        self._debts: dict[tuple[str, str, int], Debt] = {}  # (debtor, creditor, chat_id) -> Debt
         self._payments: list[Payment] = []
         self._users: set[str] = set()
 
@@ -54,34 +54,37 @@ class InMemoryRepository:
 
     def save_debt(self, debt: Debt) -> None:
         """Save or update a debt."""
-        key = (debt.debtor, debt.creditor)
+        key = (debt.debtor, debt.creditor, debt.chat_id)
         self._debts[key] = debt
 
-    def get_debt(self, debtor: str, creditor: str) -> Optional[Debt]:
-        """Get debt between two users."""
-        return self._debts.get((debtor, creditor))
+    def get_debt(self, debtor: str, creditor: str, chat_id: int = 0) -> Optional[Debt]:
+        """Get debt between two users in a specific chat."""
+        return self._debts.get((debtor, creditor, chat_id))
 
-    def get_debts_by_debtor(self, debtor: str) -> list[Debt]:
-        """Get all debts where user is debtor."""
+    def get_debts_by_debtor(self, debtor: str, chat_id: int = 0) -> list[Debt]:
+        """Get all debts where user is debtor in a specific chat."""
         return [
-            debt for (d, c), debt in self._debts.items()
-            if d == debtor
+            debt for (d, c, ch), debt in self._debts.items()
+            if d == debtor and ch == chat_id
         ]
 
-    def get_debts_by_creditor(self, creditor: str) -> list[Debt]:
-        """Get all debts where user is creditor."""
+    def get_debts_by_creditor(self, creditor: str, chat_id: int = 0) -> list[Debt]:
+        """Get all debts where user is creditor in a specific chat."""
         return [
-            debt for (d, c), debt in self._debts.items()
-            if c == creditor
+            debt for (d, c, ch), debt in self._debts.items()
+            if c == creditor and ch == chat_id
         ]
 
-    def get_all_debts(self) -> list[Debt]:
-        """Get all debts."""
-        return list(self._debts.values())
+    def get_all_debts(self, chat_id: int = 0) -> list[Debt]:
+        """Get all debts in a specific chat."""
+        return [
+            debt for (d, c, ch), debt in self._debts.items()
+            if ch == chat_id
+        ]
 
-    def delete_debt(self, debtor: str, creditor: str) -> None:
+    def delete_debt(self, debtor: str, creditor: str, chat_id: int = 0) -> None:
         """Delete a debt (when fully paid)."""
-        key = (debtor, creditor)
+        key = (debtor, creditor, chat_id)
         if key in self._debts:
             del self._debts[key]
 
@@ -93,13 +96,13 @@ class InMemoryRepository:
         """Save a payment record."""
         self._payments.append(payment)
 
-    def get_payments_by_debtor(self, debtor: str) -> list[Payment]:
-        """Get all payments made by user."""
-        return [p for p in self._payments if p.debtor == debtor]
+    def get_payments_by_debtor(self, debtor: str, chat_id: int = 0) -> list[Payment]:
+        """Get all payments made by user in a specific chat."""
+        return [p for p in self._payments if p.debtor == debtor and p.chat_id == chat_id]
 
-    def get_payments_by_creditor(self, creditor: str) -> list[Payment]:
-        """Get all payments received by user."""
-        return [p for p in self._payments if p.creditor == creditor]
+    def get_payments_by_creditor(self, creditor: str, chat_id: int = 0) -> list[Payment]:
+        """Get all payments received by user in a specific chat."""
+        return [p for p in self._payments if p.creditor == creditor and p.chat_id == chat_id]
 
     # -------------------------------------------------------------------------
     # User operations

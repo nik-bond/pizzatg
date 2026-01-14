@@ -31,6 +31,7 @@ This file defines all project rules, coding standards, workflow guidelines, refe
 - Make regular commits to GitHub.
 - Ensure there's a detailed description of changes in the commit.
 - **Always make sure there's a detailed description of changes in the commit.**
+- **REMEMBER to make regular commits of any changes to the github.**
 
 ## REFERENCE EXAMPLES
 
@@ -55,3 +56,4 @@ This file defines all project rules, coding standards, workflow guidelines, refe
 - Don't include secrets or API keys directly in the code. Use environment variables and store them securely.
 - Do not commit `.env` files to the repository. Ensure `.env` is in `.gitignore`.
 - Store the bot token securely in a `.env` file and ensure `.env` is in `.gitignore`.
+- Do not commit `.specstory` files to the repository. Ensure `.specstory/` is in `.gitignore`.

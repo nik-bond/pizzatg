@@ -67,7 +67,8 @@ def create_router(
             await message.answer("❌ У вас не установлен username в Telegram")
             return
 
-        result = debt_service.get_consolidated_debts(username)
+        chat_id = message.chat.id
+        result = debt_service.get_consolidated_debts(username, chat_id)
         await message.answer(format_consolidated_debts(result))
 
     @router.message(Command("owed", "мнедолжны"))
@@ -78,13 +79,15 @@ def create_router(
             await message.answer("❌ У вас не установлен username в Telegram")
             return
 
-        result = debt_service.get_debts_to_user(username)
+        chat_id = message.chat.id
+        result = debt_service.get_debts_to_user(username, chat_id)
         await message.answer(format_owed_list(result))
 
     @router.message(Command("all", "все"))
     async def handle_all_debts(message: Message):
         """Handle /all command - show all group debts."""
-        result = debt_service.get_all_debts()
+        chat_id = message.chat.id
+        result = debt_service.get_all_debts(chat_id)
         await message.answer(format_all_debts(result))
 
     @router.message(Command("delete", "удалить"))
@@ -95,8 +98,9 @@ def create_router(
             await message.answer("❌ У вас не установлен username в Telegram")
             return
 
-        # Get last order by this user
-        last_order = order_service.get_last_order(username)
+        chat_id = message.chat.id
+        # Get last order by this user in this chat
+        last_order = order_service.get_last_order(username, chat_id)
         
         if not last_order:
             await message.answer("❌ У вас нет заказов для удаления")
@@ -118,17 +122,19 @@ def create_router(
             await message.answer("❌ У вас не установлен username в Telegram")
             return
 
+        chat_id = message.chat.id
         try:
             parsed = parse_payment_command(message.text)
 
             # Get current debt before payment
-            current_debt = debt_service.get_debt(username, parsed.creditor)
+            current_debt = debt_service.get_debt(username, parsed.creditor, chat_id)
 
             # Record payment
             payment_service.record_payment(
                 debtor=username,
                 creditor=parsed.creditor,
-                amount=parsed.amount
+                amount=parsed.amount,
+                chat_id=chat_id
             )
 
             # Calculate remaining debt
@@ -158,6 +164,7 @@ def create_router(
             await message.answer("❌ У вас не установлен username в Telegram")
             return
 
+        chat_id = message.chat.id
         try:
             parsed = parse_order_command(message.text)
 
@@ -168,7 +175,8 @@ def create_router(
                 amount=parsed.amount,
                 payer=payer,
                 participants=parsed.participants,
-                created_by=username
+                created_by=username,
+                chat_id=chat_id
             )
 
             # Generate debts

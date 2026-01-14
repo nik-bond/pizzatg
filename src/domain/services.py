@@ -53,7 +53,8 @@ class OrderService:
         amount: Decimal,
         payer: str,
         participants: list[str],
-        created_by: str = ""
+        created_by: str = "",
+        chat_id: int = 0
     ) -> Order:
         """
         Create a new order with validation.
@@ -64,6 +65,7 @@ class OrderService:
             payer: Username who paid
             participants: List of usernames sharing the cost
             created_by: Username who created/entered the order
+            chat_id: Telegram chat ID where order was created
 
         Returns:
             Created Order instance
@@ -92,7 +94,8 @@ class OrderService:
             payer=payer,
             participants=participants,
             per_person_amount=per_person,
-            created_by=created_by
+            created_by=created_by,
+            chat_id=chat_id
         )
 
         # Save to repository
@@ -100,18 +103,19 @@ class OrderService:
 
         return order
 
-    def get_last_order(self, created_by: str) -> Optional[Order]:
+    def get_last_order(self, created_by: str, chat_id: int = 0) -> Optional[Order]:
         """
-        Get the most recent order created by a specific user.
+        Get the most recent order created by a specific user in a specific chat.
 
         Args:
             created_by: Username who created the order
+            chat_id: Telegram chat ID
 
         Returns:
             Most recent Order or None if no orders found
         """
         all_orders = self._repo.get_all_orders()
-        user_orders = [o for o in all_orders if o.created_by == created_by]
+        user_orders = [o for o in all_orders if o.created_by == created_by and o.chat_id == chat_id]
         
         if not user_orders:
             return None
@@ -172,7 +176,7 @@ class DebtService:
                 continue
 
             # Check if debt already exists
-            existing = self._repo.get_debt(participant, order.payer)
+            existing = self._repo.get_debt(participant, order.payer, order.chat_id)
 
             if existing:
                 # Add to existing debt, accumulate descriptions
@@ -183,6 +187,7 @@ class DebtService:
                     creditor=order.payer,
                     amount=existing.amount + order.per_person_amount,
                     description=combined_description,
+                    chat_id=order.chat_id,
                     created_at=existing.created_at
                 )
             else:
@@ -191,7 +196,8 @@ class DebtService:
                     debtor=participant,
                     creditor=order.payer,
                     amount=order.per_person_amount,
-                    description=order.description
+                    description=order.description,
+                    chat_id=order.chat_id
                 )
 
             self._repo.save_debt(new_debt)
@@ -210,17 +216,17 @@ class DebtService:
             if participant != order.payer:
                 # Try to delete the debt, ignore if it doesn't exist
                 try:
-                    self._repo.delete_debt(participant, order.payer)
+                    self._repo.delete_debt(participant, order.payer, order.chat_id)
                 except Exception:
                     pass  # Debt might have been partially or fully paid
 
-    def get_debt(self, debtor: str, creditor: str) -> Decimal:
+    def get_debt(self, debtor: str, creditor: str, chat_id: int = 0) -> Decimal:
         """
-        Get debt amount between two users.
+        Get debt amount between two users in a specific chat.
 
         Returns Decimal('0') if no debt exists.
         """
-        debt = self._repo.get_debt(debtor, creditor)
+        debt = self._repo.get_debt(debtor, creditor, chat_id)
         return debt.amount if debt else Decimal('0')
 
     def get_total_owed_by(self, user: str) -> Decimal:
@@ -233,13 +239,13 @@ class DebtService:
         debts = self._repo.get_debts_by_creditor(user)
         return sum((d.amount for d in debts), Decimal('0'))
 
-    def get_debts_by_user(self, user: str) -> dict:
+    def get_debts_by_user(self, user: str, chat_id: int = 0) -> dict:
         """
-        Get all debts owed BY user.
+        Get all debts owed BY user in a specific chat.
 
         Returns dict with 'debts', 'total', and 'message' keys.
         """
-        debts = self._repo.get_debts_by_debtor(user)
+        debts = self._repo.get_debts_by_debtor(user, chat_id)
 
         # Filter out settled debts
         active_debts = [d for d in debts if not d.is_settled]
@@ -260,15 +266,15 @@ class DebtService:
             'message': None
         }
 
-    def get_debts_to_user(self, user: str) -> dict:
+    def get_debts_to_user(self, user: str, chat_id: int = 0) -> dict:
         """
-        Get all debts owed TO user (after netting).
+        Get all debts owed TO user (after netting) in a specific chat.
 
         Shows only net amounts where people owe the user money.
         Returns dict with 'debts', 'total', and 'message' keys.
         """
         # Get consolidated view to calculate net amounts
-        consolidated = self.get_consolidated_debts(user)
+        consolidated = self.get_consolidated_debts(user, chat_id)
         
         if consolidated.get('message'):
             return {
@@ -302,13 +308,13 @@ class DebtService:
             'message': None
         }
 
-    def get_all_debts(self) -> dict:
+    def get_all_debts(self, chat_id: int = 0) -> dict:
         """
-        Get all debts in the system.
+        Get all debts in the system for a specific chat.
 
         Returns dict with 'debts' and 'total' keys.
         """
-        debts = self._repo.get_all_debts()
+        debts = self._repo.get_all_debts(chat_id)
 
         # Filter out settled debts
         active_debts = [d for d in debts if not d.is_settled]
@@ -326,9 +332,9 @@ class DebtService:
             'total': sum((d.amount for d in active_debts), Decimal('0'))
         }
 
-    def get_consolidated_debts(self, user: str) -> dict:
+    def get_consolidated_debts(self, user: str, chat_id: int = 0) -> dict:
         """
-        Get consolidated net debts for a user.
+        Get consolidated net debts for a user in a specific chat.
 
         Calculates net balance with each counterparty, showing breakdown
         of what user owes vs what they're owed.
@@ -344,8 +350,8 @@ class DebtService:
         - net_direction: 'i_owe' or 'they_owe' or 'settled'
         """
         # Get all debts in both directions
-        i_owe = self._repo.get_debts_by_debtor(user)
-        they_owe = self._repo.get_debts_by_creditor(user)
+        i_owe = self._repo.get_debts_by_debtor(user, chat_id)
+        they_owe = self._repo.get_debts_by_creditor(user, chat_id)
 
         # Build map of counterparties
         counterparties = {}
@@ -448,9 +454,9 @@ class DebtService:
                 'net_creditor': None
             }
 
-    def reduce_debt(self, debtor: str, creditor: str, amount: Decimal) -> Debt:
+    def reduce_debt(self, debtor: str, creditor: str, amount: Decimal, chat_id: int = 0) -> Debt:
         """
-        Reduce debt by payment amount.
+        Reduce debt by payment amount in a specific chat.
 
         Returns updated Debt instance.
 
@@ -458,7 +464,7 @@ class DebtService:
             DebtNotFoundError: If no debt exists
             PaymentExceedsDebtError: If amount > debt
         """
-        debt = self._repo.get_debt(debtor, creditor)
+        debt = self._repo.get_debt(debtor, creditor, chat_id)
 
         if not debt or debt.is_settled:
             raise DebtNotFoundError(f"Долг не найден")
@@ -471,7 +477,7 @@ class DebtService:
         new_debt = debt.reduce(amount)
 
         if new_debt.is_settled:
-            self._repo.delete_debt(debtor, creditor)
+            self._repo.delete_debt(debtor, creditor, chat_id)
         else:
             self._repo.save_debt(new_debt)
 
@@ -493,15 +499,17 @@ class PaymentService:
         self,
         debtor: str,
         creditor: str,
-        amount: Decimal
+        amount: Decimal,
+        chat_id: int = 0
     ) -> Payment:
         """
-        Record a payment from debtor to creditor.
+        Record a payment from debtor to creditor in a specific chat.
 
         Args:
             debtor: Username who is paying
             creditor: Username receiving payment
             amount: Amount being paid
+            chat_id: Telegram chat ID
 
         Returns:
             Created Payment instance
@@ -516,14 +524,15 @@ class PaymentService:
             raise ValidationError("Сумма платежа должна быть положительной")
 
         # Reduce debt (will raise if invalid)
-        self._debt_service.reduce_debt(debtor, creditor, amount)
+        self._debt_service.reduce_debt(debtor, creditor, amount, chat_id)
 
         # Create payment record
         payment = Payment(
             id=Payment.generate_id(),
             debtor=debtor,
             creditor=creditor,
-            amount=amount
+            amount=amount,
+            chat_id=chat_id
         )
 
         self._repo.save_payment(payment)

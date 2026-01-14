@@ -29,6 +29,7 @@ class Order:
         participants: List of usernames sharing the cost
         per_person_amount: Calculated share per participant
         created_by: Username who created/entered the order
+        chat_id: Telegram chat ID where order was created
         created_at: When order was created
     """
     id: str
@@ -38,6 +39,7 @@ class Order:
     participants: list[str]
     per_person_amount: Decimal
     created_by: str = ""
+    chat_id: int = 0
     created_at: datetime = field(default_factory=datetime.now)
 
     @staticmethod
@@ -69,6 +71,7 @@ class Debt:
         creditor: Username who is owed money
         amount: How much is owed
         description: What the debt is for (e.g., "пицца, суши")
+        chat_id: Telegram chat ID where debt exists
         created_at: When debt was first created
         updated_at: When debt was last modified
     """
@@ -76,6 +79,7 @@ class Debt:
     creditor: str
     amount: Decimal
     description: str = ""
+    chat_id: int = 0
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
@@ -91,6 +95,7 @@ class Debt:
             creditor=self.creditor,
             amount=new_amount,
             description=self.description,
+            chat_id=self.chat_id,
             created_at=self.created_at,
             updated_at=datetime.now()
         )
@@ -111,12 +116,14 @@ class Payment:
         debtor: Username who paid
         creditor: Username who received
         amount: Amount paid
+        chat_id: Telegram chat ID where payment was made
         created_at: When payment was made
     """
     id: str
     debtor: str
     creditor: str
     amount: Decimal
+    chat_id: int = 0
     created_at: datetime = field(default_factory=datetime.now)
 
     @staticmethod

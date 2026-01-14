@@ -145,6 +145,28 @@ This document records how Claude AI was used in developing this project, followi
 | 12 | 9d8b6f5 | security | Remove .specstory files, add .env for bot token |
 | 13 | ca22e0b | fix | Update help formatting and /owed netting display |
 | 14 | ed62725 | feat | Add /delete command to remove orders by creator |
+| 15 | CURRENT | feat | Chat isolation for multi-group support |
+
+## Current Work: Phase E7 - Chat Isolation (IN PROGRESS) 🚧
+
+**Goal:** Allow bot to work in multiple Telegram groups simultaneously
+
+**Status:** Implementation complete, all 53 BDD tests passing
+
+**Changes made:**
+- Added `chat_id` field to Order, Debt, Payment models (default 0 for backwards compatibility)
+- Database migrations: added chat_id columns with indexes to orders, debts, payments tables
+- Changed debt primary key to (debtor, creditor, chat_id) to allow same users in different groups
+- Updated InMemoryRepository and SQLiteRepository to filter by chat_id
+- Modified all service methods (20+ methods) to accept and filter by chat_id parameter
+- Updated all bot handlers to extract message.chat.id and pass to services
+- Fixed sqlite3.Row access issues (Row doesn't have .get() method)
+
+**Next steps:**
+1. Write BDD scenarios for chat isolation feature
+2. Convert test_bot_integration.py (14 tests) to BDD format
+3. Test multi-chat isolation manually
+4. Commit changes with detailed description
 
 ## Lessons Learned
 
@@ -155,3 +177,5 @@ This document records how Claude AI was used in developing this project, followi
 **Decimal precision**: Using `Decimal(str(float_value))` ensures accurate conversion from float test parameters.
 
 **Router testing**: Direct handler calls with mock Messages more reliable than full dispatcher testing.
+
+**sqlite3.Row access**: Row objects don't have .get() method. Use `row['key'] if 'key' in row.keys() else default` instead of `row.get('key', default)`.
