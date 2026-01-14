@@ -160,9 +160,13 @@ This document records how Claude AI was used in developing this project, followi
 - Updated InMemoryRepository and SQLiteRepository to filter by chat_id
 - Modified all service methods (20+ methods) to accept and filter by chat_id parameter
 - Updated all bot handlers to extract message.chat.id and pass to services
-- Converted bot integration tests to BDD (.feature + steps); removed legacy integration test file
 - Fixed sqlite3.Row access issues (Row doesn't have .get() method)
 - Security: ran `pip-audit` (2.10.0) — no known vulnerabilities
+
+### Recent updates (Jan 2026)
+- Chat data isolation: separate debts per `chat_id`
+- SQLite migrations hardened: add `chat_id` columns before index creation on older DBs
+- Security check: `pip-audit` 2.10.0 — no known vulnerabilities
 
 ## Lessons Learned
 
