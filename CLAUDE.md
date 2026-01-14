@@ -68,7 +68,7 @@ This document records how Claude AI was used in developing this project, followi
 **Goal:** Production readiness
 
 **Implementation:**
-- 14 end-to-end handler scenarios (now in BDD) — total: 86 tests (72 BDD scenarios + integration coverage)
+- 6 end-to-end handler scenarios (BDD) — total: 64 tests (all BDD)
 - Secure token storage with python-dotenv
 - Input validation for all user inputs
 - SQL injection prevention
@@ -99,7 +99,7 @@ This document records how Claude AI was used in developing this project, followi
 
 ## Test Coverage
 
-### All Features (86 tests; 72 BDD scenarios + supporting coverage)
+### All Features (64 BDD scenarios)
 
 | Feature | Scenarios | Purpose |
 |---------|-----------|---------|
@@ -110,14 +110,13 @@ This document records how Claude AI was used in developing this project, followi
 | persistence | 6 | SQLite data persistence |
 | bot_commands | 16 | Telegram message parsing/formatting |
 | chat_isolation | 5 | Validate per-chat data segregation |
-| **bot_integration** | **14** | **End-to-end handler workflows (BDD)** |
+| **bot_integration** | **6** | **End-to-end handler workflows (BDD, lean set)** |
 
-**Bot Integration Scenarios** (BDD):
-- Order flow (3): with/without description, explicit payer
-- Payment flow (2): full and partial payments
-- Query commands (3): /debts, /owed, no debts case
-- Command handlers (2): /start, /help
-- Error handling (4): invalid input, payment errors, missing username
+**Bot Integration Scenarios** (lean BDD set):
+- Order flow: with description; explicit payer
+- Payment flow: partial payment with remaining balance
+- Query commands: /debts net view; /owed creditor view
+- Error handling: payment exceeding debt
 
 ### Security Scenarios
 
@@ -151,7 +150,7 @@ This document records how Claude AI was used in developing this project, followi
 
 **Goal:** Allow bot to work in multiple Telegram groups simultaneously
 
-**Status:** All 86 tests passing (BDD scenarios converted for bot integration); bot manually tested; pip-audit clean
+**Status:** 64 tests passing (lean BDD suite for integration); bot manually tested; pip-audit clean
 
 **Changes made:**
 - Added `chat_id` field to Order, Debt, Payment models (default 0 for backwards compatibility)
@@ -162,6 +161,7 @@ This document records how Claude AI was used in developing this project, followi
 - Updated all bot handlers to extract message.chat.id and pass to services
 - Fixed sqlite3.Row access issues (Row doesn't have .get() method)
 - Security: ran `pip-audit` (2.10.0) — no known vulnerabilities
+- Test suite trimmed: legacy integration module removed; BDD integration reduced to 6 core flows
 
 ### Recent updates (Jan 2026)
 - Chat data isolation: separate debts per `chat_id`
