@@ -2,12 +2,13 @@
 Telegram bot entry point.
 
 Run with: python -m src.bot.app
-Requires BOT_TOKEN environment variable.
+Requires BOT_TOKEN in .env file or environment variable.
 """
 import asyncio
 import logging
 import os
 import sys
+from dotenv import load_dotenv
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -16,6 +17,9 @@ from aiogram.enums import ParseMode
 from src.persistence.sqlite_repo import SQLiteRepository
 from src.domain.services import OrderService, DebtService, PaymentService
 from .handlers import create_router
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 # Configure logging
@@ -28,14 +32,14 @@ logger = logging.getLogger(__name__)
 
 def get_bot_token() -> str:
     """
-    Get bot token from environment.
+    Get bot token from environment (.env file or system environment).
 
     Raises:
         SystemExit: If BOT_TOKEN is not set
     """
     token = os.getenv('BOT_TOKEN')
     if not token:
-        logger.error("BOT_TOKEN environment variable is not set")
+        logger.error("BOT_TOKEN not found. Create a .env file with BOT_TOKEN=your_token")
         sys.exit(1)
     return token
 

@@ -51,8 +51,14 @@ pytest
 ## Запуск бота
 
 ```bash
-# Установите токен бота
-export BOT_TOKEN="your_telegram_bot_token"
+# Создайте файл .env на основе примера
+cp .env.example .env
+
+# Отредактируйте .env и укажите токен бота
+# BOT_TOKEN=your_telegram_bot_token
+
+# Установите зависимости (если не установлены)
+pip install -r requirements.txt
 
 # Запустите бота
 python -m src.bot.app
