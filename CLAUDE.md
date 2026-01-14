@@ -47,14 +47,16 @@ This document records how Claude AI was used in developing this project, followi
 
 ## Test Coverage
 
-### MVP Features (31 scenarios)
+### All Features (49 scenarios)
 
 | Feature | Scenarios | Purpose |
 |---------|-----------|---------|
-| order_creation | 8 | Create orders with validation |
+| order_creation | 9 | Create orders with validation |
 | debt_calculation | 6 | Calculate who owes whom |
 | payment_processing | 8 | Record and validate payments |
 | debt_query | 7 | Query current debt state |
+| persistence | 6 | SQLite data persistence |
+| bot_commands | 13 | Telegram message parsing/formatting |
 
 ### Security Scenarios
 
@@ -70,23 +72,42 @@ This document records how Claude AI was used in developing this project, followi
 |---|------|------|-------------|
 | 1 | 93a8cdc | docs | Initial project structure and BDD features |
 | 2 | 232b907 | feat | MVP domain logic with full test coverage |
+| 3 | 26e4e5d | docs | Update development log with MVP completion |
+| 4 | 2495483 | feat | SQLite repository with integration tests |
+| 5 | febeef9 | feat | Telegram bot with aiogram handlers |
+| 6 | e5e39e6 | docs | Update README with bot usage |
+| 7 | cf0218e | security | Comprehensive security review |
 
 ## Evolution Plan
 
-### MVP (COMPLETE)
+### MVP (COMPLETE) ✅
 - Order creation with equal split
 - Debt tracking
 - Payment recording
 - Basic queries
-- **30 tests passing**
 
-### Post-MVP Phases
-1. SQLite persistence layer
-2. Telegram bot integration
-3. Payment confirmation flow
-4. Debt aging (days since order)
-5. Order history and details
-6. Debt optimization (netting)
+### Phase E1: SQLite Persistence (COMPLETE) ✅
+- SQLite repository implementation
+- Data persists across restarts
+- Concurrent access safety tested
+
+### Phase E2: Telegram Bot (COMPLETE) ✅
+- aiogram handlers for all commands
+- Message parsing for orders and payments
+- Response formatting with emoji
+
+### Phase E3: Security Review (COMPLETE) ✅
+- Threat model documented
+- Input validation verified
+- SQL injection prevention confirmed
+- Abuse cases identified with mitigations
+
+### Remaining Phases
+- E4: Payment confirmation flow
+- E5: Debt aging (days since order)
+- E6: Group isolation by chat_id
+
+## Final Test Count: 49 scenarios
 
 ## Lessons Learned
 
