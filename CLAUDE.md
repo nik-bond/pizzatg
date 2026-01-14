@@ -155,5 +155,3 @@ This document records how Claude AI was used in developing this project, followi
 **Decimal precision**: Using `Decimal(str(float_value))` ensures accurate conversion from float test parameters.
 
 **Router testing**: Direct handler calls with mock Messages more reliable than full dispatcher testing.
-
-**Security**: GitHub secret scanning is aggressive - avoid committing any files with session-like identifiers.
