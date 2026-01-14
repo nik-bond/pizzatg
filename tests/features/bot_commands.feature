@@ -19,6 +19,26 @@ Feature: Telegram Bot Commands
     And parsed amount is 1500
     And parsed participants are "ivan", "petya"
 
+  Scenario: Parse order with explicit payer using paid: marker
+    Given message text "пицца 1000 paid:@ivan @petya @masha"
+    When the message is parsed as order command
+    Then parsed description is "пицца"
+    And parsed amount is 1000
+    And parsed payer is "ivan"
+    And parsed participants are "petya", "masha"
+
+  Scenario: Parse order with explicit payer without space
+    Given message text "суши 500 paid:@anna @boris"
+    When the message is parsed as order command
+    Then parsed payer is "anna"
+    And parsed participants are "boris"
+
+  Scenario: Parse order without paid: uses default payer
+    Given message text "кофе 300 @ivan @petya"
+    When the message is parsed as order command
+    Then parsed payer is not specified
+    And parsed participants are "ivan", "petya"
+
   Scenario: Parse payment command
     Given message text "/paid @ivan 1000"
     When the message is parsed as payment command

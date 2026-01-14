@@ -16,6 +16,7 @@ class ParsedOrder:
     description: str
     amount: Decimal
     participants: list[str]
+    payer: Optional[str] = None  # Explicit payer if specified with paid:
 
 
 @dataclass
@@ -48,19 +49,28 @@ def parse_order_command(text: str) -> ParsedOrder:
     Parse order command from message text.
 
     Formats supported:
-    - "пицца 3000 @ivan @petya @masha" (with description)
+    - "пицца 3000 @ivan @petya @masha" (with description, sender is payer)
+    - "пицца 3000 paid:@ivan @petya @masha" (explicit payer)
     - "3000 @ivan @petya" (without description)
 
     Args:
         text: Raw message text
 
     Returns:
-        ParsedOrder with description, amount, participants
+        ParsedOrder with description, amount, participants, and optional payer
 
     Raises:
         ParseError: If message format is invalid
     """
-    # Find all @mentions
+    # Check for explicit payer with paid:@username syntax
+    payer = None
+    payer_match = re.search(r'paid:@?(\w+)', text, re.IGNORECASE)
+    if payer_match:
+        payer = normalize_username(payer_match.group(1))
+        # Remove paid:@username from text for further parsing
+        text = re.sub(r'paid:@?\w+', '', text, flags=re.IGNORECASE).strip()
+
+    # Find all @mentions (excluding the payer we already extracted)
     mentions = re.findall(r'@(\w+)', text)
 
     if not mentions:
@@ -90,7 +100,8 @@ def parse_order_command(text: str) -> ParsedOrder:
     return ParsedOrder(
         description=description,
         amount=amount,
-        participants=participants
+        participants=participants,
+        payer=payer
     )
 
 

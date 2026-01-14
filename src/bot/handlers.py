@@ -136,11 +136,11 @@ def create_router(
         try:
             parsed = parse_order_command(message.text)
 
-            # Create order
+            # Create order (use explicit payer from paid: marker or message sender)
             order = order_service.create_order(
                 description=parsed.description or "заказ",
                 amount=parsed.amount,
-                payer=username,
+                payer=parsed.payer or username,
                 participants=parsed.participants
             )
 

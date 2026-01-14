@@ -247,6 +247,20 @@ def verify_parsed_participants(bot_context, expected: str):
         f"Expected participants {expected_list}, got {bot_context.parsed_order.participants}"
 
 
+@then(parsers.parse('parsed payer is "{expected}"'))
+def verify_parsed_payer(bot_context, expected: str):
+    """Verify parsed explicit payer."""
+    assert bot_context.parsed_order.payer == expected, \
+        f"Expected payer '{expected}', got '{bot_context.parsed_order.payer}'"
+
+
+@then('parsed payer is not specified')
+def verify_parsed_payer_not_specified(bot_context):
+    """Verify no explicit payer was specified."""
+    assert bot_context.parsed_order.payer is None, \
+        f"Expected no payer, got '{bot_context.parsed_order.payer}'"
+
+
 @then(parsers.parse('parsed creditor is "{expected}"'))
 def verify_parsed_creditor(bot_context, expected: str):
     """Verify parsed creditor."""
