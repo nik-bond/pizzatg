@@ -31,7 +31,6 @@ This file defines all project rules, coding standards, workflow guidelines, refe
 - Make regular commits to GitHub.
 - Ensure there's a detailed description of changes in the commit.
 - **Always make sure there's a detailed description of changes in the commit.**
-- When creating a pull request, ensure it has a clear title and description.
 
 ## REFERENCE EXAMPLES
 
