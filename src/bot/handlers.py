@@ -27,6 +27,7 @@ from .formatters import (
     format_error,
     format_welcome,
     format_help,
+    format_delete_confirmation,
 )
 
 
@@ -86,6 +87,29 @@ def create_router(
         result = debt_service.get_all_debts()
         await message.answer(format_all_debts(result))
 
+    @router.message(Command("delete", "удалить"))
+    async def handle_delete(message: Message):
+        """Handle /delete command - delete last order."""
+        username = message.from_user.username
+        if not username:
+            await message.answer("❌ У вас не установлен username в Telegram")
+            return
+
+        # Get last order by this user
+        last_order = order_service.get_last_order(username)
+        
+        if not last_order:
+            await message.answer("❌ У вас нет заказов для удаления")
+            return
+
+        # Delete associated debts first
+        debt_service.delete_debts_for_order(last_order)
+        
+        # Delete the order
+        order_service.delete_order(last_order.id)
+        
+        await message.answer(format_delete_confirmation(last_order))
+
     @router.message(Command("paid"))
     async def handle_paid(message: Message):
         """Handle /paid command - record payment."""
@@ -137,12 +161,14 @@ def create_router(
         try:
             parsed = parse_order_command(message.text)
 
-            # Create order (use explicit payer from paid: marker or message sender)
+            # Create order (use explicit payer from payer: marker or first participant)
+            payer = parsed.payer or parsed.participants[0]
             order = order_service.create_order(
                 description=parsed.description or "заказ",
                 amount=parsed.amount,
-                payer=parsed.payer or username,
-                participants=parsed.participants
+                payer=payer,
+                participants=parsed.participants,
+                created_by=username
             )
 
             # Generate debts

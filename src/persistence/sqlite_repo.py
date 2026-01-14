@@ -70,6 +70,7 @@ class SQLiteRepository:
                     payer TEXT NOT NULL,
                     participants TEXT NOT NULL,
                     per_person_amount TEXT NOT NULL,
+                    created_by TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL,
                     FOREIGN KEY (payer) REFERENCES users(username)
                 );
@@ -100,6 +101,13 @@ class SQLiteRepository:
                 CREATE INDEX IF NOT EXISTS idx_debts_creditor ON debts(creditor);
                 CREATE INDEX IF NOT EXISTS idx_orders_payer ON orders(payer);
             """)
+            
+            # Migration: Add created_by column if it doesn't exist
+            try:
+                conn.execute("SELECT created_by FROM orders LIMIT 1")
+            except sqlite3.OperationalError:
+                # Column doesn't exist, add it
+                conn.execute("ALTER TABLE orders ADD COLUMN created_by TEXT NOT NULL DEFAULT ''")
 
     # -------------------------------------------------------------------------
     # User operations
@@ -145,8 +153,8 @@ class SQLiteRepository:
 
             conn.execute("""
                 INSERT OR REPLACE INTO orders
-                (id, description, amount, payer, participants, per_person_amount, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (id, description, amount, payer, participants, per_person_amount, created_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 order.id,
                 order.description,
@@ -154,6 +162,7 @@ class SQLiteRepository:
                 order.payer,
                 participants_str,
                 str(order.per_person_amount),
+                order.created_by,
                 order.created_at.isoformat()
             ))
 
@@ -176,6 +185,7 @@ class SQLiteRepository:
                 payer=row['payer'],
                 participants=row['participants'].split(','),
                 per_person_amount=Decimal(row['per_person_amount']),
+                created_by=row.get('created_by', ''),
                 created_at=datetime.fromisoformat(row['created_at'])
             )
 
@@ -192,9 +202,15 @@ class SQLiteRepository:
                     payer=row['payer'],
                     participants=row['participants'].split(','),
                     per_person_amount=Decimal(row['per_person_amount']),
+                    created_by=row.get('created_by', ''),
                     created_at=datetime.fromisoformat(row['created_at'])
                 ))
             return orders
+
+    def delete_order(self, order_id: str) -> None:
+        """Delete an order by ID."""
+        with self._transaction() as conn:
+            conn.execute("DELETE FROM orders WHERE id = ?", (order_id,))
 
     # -------------------------------------------------------------------------
     # Debt operations

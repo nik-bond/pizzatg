@@ -43,6 +43,11 @@ class InMemoryRepository:
         """Get all orders."""
         return list(self._orders.values())
 
+    def delete_order(self, order_id: str) -> None:
+        """Delete an order by ID."""
+        if order_id in self._orders:
+            del self._orders[order_id]
+
     # -------------------------------------------------------------------------
     # Debt operations
     # -------------------------------------------------------------------------

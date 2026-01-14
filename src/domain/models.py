@@ -28,6 +28,7 @@ class Order:
         payer: Username of person who paid
         participants: List of usernames sharing the cost
         per_person_amount: Calculated share per participant
+        created_by: Username who created/entered the order
         created_at: When order was created
     """
     id: str
@@ -36,6 +37,7 @@ class Order:
     payer: str
     participants: list[str]
     per_person_amount: Decimal
+    created_by: str = ""
     created_at: datetime = field(default_factory=datetime.now)
 
     @staticmethod

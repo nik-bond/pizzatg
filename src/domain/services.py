@@ -20,6 +20,8 @@ class Repository(Protocol):
 
     def save_order(self, order: Order) -> None: ...
     def get_order(self, order_id: str) -> Optional[Order]: ...
+    def get_all_orders(self) -> list[Order]: ...
+    def delete_order(self, order_id: str) -> None: ...
 
     def save_debt(self, debt: Debt) -> None: ...
     def get_debt(self, debtor: str, creditor: str) -> Optional[Debt]: ...
@@ -50,7 +52,8 @@ class OrderService:
         description: str,
         amount: Decimal,
         payer: str,
-        participants: list[str]
+        participants: list[str],
+        created_by: str = ""
     ) -> Order:
         """
         Create a new order with validation.
@@ -60,6 +63,7 @@ class OrderService:
             amount: Total amount in rubles
             payer: Username who paid
             participants: List of usernames sharing the cost
+            created_by: Username who created/entered the order
 
         Returns:
             Created Order instance
@@ -87,13 +91,42 @@ class OrderService:
             amount=amount,
             payer=payer,
             participants=participants,
-            per_person_amount=per_person
+            per_person_amount=per_person,
+            created_by=created_by
         )
 
         # Save to repository
         self._repo.save_order(order)
 
         return order
+
+    def get_last_order(self, created_by: str) -> Optional[Order]:
+        """
+        Get the most recent order created by a specific user.
+
+        Args:
+            created_by: Username who created the order
+
+        Returns:
+            Most recent Order or None if no orders found
+        """
+        all_orders = self._repo.get_all_orders()
+        user_orders = [o for o in all_orders if o.created_by == created_by]
+        
+        if not user_orders:
+            return None
+        
+        # Orders have created_at, sort by it
+        return sorted(user_orders, key=lambda o: o.created_at, reverse=True)[0]
+
+    def delete_order(self, order_id: str) -> None:
+        """
+        Delete an order.
+
+        Args:
+            order_id: ID of the order to delete
+        """
+        self._repo.delete_order(order_id)
 
     def _validate_amount(self, amount: Decimal) -> None:
         """Validate order amount."""
@@ -166,6 +199,21 @@ class DebtService:
 
         return debts
 
+    def delete_debts_for_order(self, order: Order) -> None:
+        """
+        Delete all debts associated with an order.
+
+        Args:
+            order: The order whose debts should be deleted
+        """
+        for participant in order.participants:
+            if participant != order.payer:
+                # Try to delete the debt, ignore if it doesn't exist
+                try:
+                    self._repo.delete_debt(participant, order.payer)
+                except Exception:
+                    pass  # Debt might have been partially or fully paid
+
     def get_debt(self, debtor: str, creditor: str) -> Decimal:
         """
         Get debt amount between two users.
@@ -214,28 +262,43 @@ class DebtService:
 
     def get_debts_to_user(self, user: str) -> dict:
         """
-        Get all debts owed TO user.
+        Get all debts owed TO user (after netting).
 
+        Shows only net amounts where people owe the user money.
         Returns dict with 'debts', 'total', and 'message' keys.
         """
-        debts = self._repo.get_debts_by_creditor(user)
-
-        # Filter out settled debts
-        active_debts = [d for d in debts if not d.is_settled]
-
-        if not active_debts:
+        # Get consolidated view to calculate net amounts
+        consolidated = self.get_consolidated_debts(user)
+        
+        if consolidated.get('message'):
+            return {
+                'debts': [],
+                'total': Decimal('0'),
+                'message': 'Вам никто не должен'
+            }
+        
+        # Filter to only show people who owe user money (net positive)
+        debts_to_user = []
+        for debt_info in consolidated.get('debts', []):
+            if debt_info['net_direction'] == 'they_owe':
+                debts_to_user.append({
+                    'debtor': debt_info['counterparty'],
+                    'amount': debt_info['net_amount'],
+                    'description': debt_info['they_owe']['description'] if debt_info.get('they_owe') else ''
+                })
+        
+        if not debts_to_user:
             return {
                 'debts': [],
                 'total': Decimal('0'),
                 'message': 'Вам никто не должен'
             }
 
+        total = sum((d['amount'] for d in debts_to_user), Decimal('0'))
+        
         return {
-            'debts': [
-                {'debtor': d.debtor, 'amount': d.amount, 'description': d.description}
-                for d in active_debts
-            ],
-            'total': sum((d.amount for d in active_debts), Decimal('0')),
+            'debts': debts_to_user,
+            'total': total,
             'message': None
         }
 
