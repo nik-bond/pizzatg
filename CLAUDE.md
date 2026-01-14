@@ -45,7 +45,7 @@ This document records how Claude AI was used in developing this project, followi
 - No confirmation flow in MVP (simpler, but less secure)
 - Single group assumed (simpler, multi-group is post-MVP)
 
-### Session 2: Bot Integration Testing (2026-01-14)
+### Session 2: Bot Integration Testing
 
 **Goal:** Add comprehensive integration tests for Telegram bot handlers
 
@@ -70,7 +70,7 @@ This document records how Claude AI was used in developing this project, followi
 
 **Result:** All 67 tests pass (53 BDD + 14 integration)
 
-### Session 3: Feature Enhancements & Security (2026-01-14)
+### Session 3: Feature Enhancements & Security
 
 **Goal:** Production readiness and user-requested features
 
