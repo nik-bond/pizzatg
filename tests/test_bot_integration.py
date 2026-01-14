@@ -14,6 +14,10 @@ from src.persistence.memory_repo import InMemoryRepository
 from src.bot.handlers import create_router
 
 
+# Consistent chat ID used across tests
+CHAT_ID = 12345
+
+
 @pytest.fixture
 def repository():
     """Create fresh in-memory repository for each test."""
@@ -55,7 +59,7 @@ def create_message(text: str, username: str = "testuser") -> Message:
         first_name="Test",
         username=username
     )
-    message.chat = Chat(id=12345, type="private")
+    message.chat = Chat(id=CHAT_ID, type="private")
     
     # Track responses
     message.responses = []
@@ -116,13 +120,13 @@ class TestOrderFlow:
         assert "пицца" in response
         
         # Verify debts were created (3000 / 4 people = 750 each)
-        ivan_debt = debt_service.get_debt("ivan", "testuser")
+        ivan_debt = debt_service.get_debt("ivan", "testuser", message.chat.id)
         assert ivan_debt == Decimal("750")
-        
-        petya_debt = debt_service.get_debt("petya", "testuser")
+
+        petya_debt = debt_service.get_debt("petya", "testuser", message.chat.id)
         assert petya_debt == Decimal("750")
-        
-        masha_debt = debt_service.get_debt("masha", "testuser")
+
+        masha_debt = debt_service.get_debt("masha", "testuser", message.chat.id)
         assert masha_debt == Decimal("750")
     
     async def test_create_order_without_description(self, router, services):
@@ -139,7 +143,7 @@ class TestOrderFlow:
         assert "1500" in response
         
         # Verify debts (1500 / 3 = 500 each)
-        ivan_debt = debt_service.get_debt("ivan", "testuser")
+        ivan_debt = debt_service.get_debt("ivan", "testuser", message.chat.id)
         assert ivan_debt == Decimal("500")
     
     async def test_order_with_explicit_payer(self, router, services):
@@ -150,14 +154,14 @@ class TestOrderFlow:
         await call_handler(router, "handle_text", message)
         
         # Ivan is payer, so petya and masha owe ivan
-        petya_debt = debt_service.get_debt("petya", "ivan")
+        petya_debt = debt_service.get_debt("petya", "ivan", message.chat.id)
         assert petya_debt == Decimal("1000")
-        
-        masha_debt = debt_service.get_debt("masha", "ivan")
+
+        masha_debt = debt_service.get_debt("masha", "ivan", message.chat.id)
         assert masha_debt == Decimal("1000")
-        
+
         # Ivan doesn't owe himself
-        ivan_debt = debt_service.get_debt("ivan", "ivan")
+        ivan_debt = debt_service.get_debt("ivan", "ivan", message.chat.id)
         assert ivan_debt == Decimal("0")
 
 
@@ -170,7 +174,9 @@ class TestPaymentFlow:
         order_service, debt_service, _ = services
         
         # Setup: create order first
-        order = order_service.create_order("пицца", Decimal("3000"), "ivan", ["ivan", "petya", "masha"])
+        order = order_service.create_order(
+            "пицца", Decimal("3000"), "ivan", ["ivan", "petya", "masha"], chat_id=CHAT_ID
+        )
         debt_service.create_debts_from_order(order)
         
         # Petya pays full debt
@@ -185,7 +191,7 @@ class TestPaymentFlow:
         assert "0" in response  # Remaining debt is 0
         
         # Verify debt cleared
-        remaining_debt = debt_service.get_debt("petya", "ivan")
+        remaining_debt = debt_service.get_debt("petya", "ivan", message.chat.id)
         assert remaining_debt == Decimal("0")
     
     async def test_partial_payment(self, router, services):
@@ -193,7 +199,9 @@ class TestPaymentFlow:
         order_service, debt_service, _ = services
         
         # Setup: create order
-        order = order_service.create_order("пицца", Decimal("3000"), "ivan", ["ivan", "petya"])
+        order = order_service.create_order(
+            "пицца", Decimal("3000"), "ivan", ["ivan", "petya"], chat_id=CHAT_ID
+        )
         debt_service.create_debts_from_order(order)
         
         # Petya pays 500 of 1500 debt
@@ -206,7 +214,7 @@ class TestPaymentFlow:
         assert "1000" in response  # Remaining debt
         
         # Verify debt reduced
-        remaining_debt = debt_service.get_debt("petya", "ivan")
+        remaining_debt = debt_service.get_debt("petya", "ivan", message.chat.id)
         assert remaining_debt == Decimal("1000")
 
 
@@ -219,10 +227,14 @@ class TestQueryCommands:
         order_service, debt_service, _ = services
         
         # Setup: petya owes ivan 1000, ivan owes petya 300
-        order1 = order_service.create_order("пицца", Decimal("2000"), "ivan", ["ivan", "petya"])
+        order1 = order_service.create_order(
+            "пицца", Decimal("2000"), "ivan", ["ivan", "petya"], chat_id=CHAT_ID
+        )
         debt_service.create_debts_from_order(order1)
         
-        order2 = order_service.create_order("кофе", Decimal("600"), "petya", ["petya", "ivan"])
+        order2 = order_service.create_order(
+            "кофе", Decimal("600"), "petya", ["petya", "ivan"], chat_id=CHAT_ID
+        )
         debt_service.create_debts_from_order(order2)
         
         # Petya checks debts
@@ -240,7 +252,9 @@ class TestQueryCommands:
         order_service, debt_service, _ = services
         
         # Setup: petya and masha owe ivan
-        order = order_service.create_order("пицца", Decimal("3000"), "ivan", ["ivan", "petya", "masha"])
+        order = order_service.create_order(
+            "пицца", Decimal("3000"), "ivan", ["ivan", "petya", "masha"], chat_id=CHAT_ID
+        )
         debt_service.create_debts_from_order(order)
         
         # Ivan checks who owes him
@@ -307,7 +321,9 @@ class TestErrorHandling:
         order_service, debt_service, _ = services
         
         # Setup: small debt
-        order = order_service.create_order("кофе", Decimal("200"), "ivan", ["ivan", "petya"])
+        order = order_service.create_order(
+            "кофе", Decimal("200"), "ivan", ["ivan", "petya"], chat_id=CHAT_ID
+        )
         debt_service.create_debts_from_order(order)
         
         # Try to pay more than owed

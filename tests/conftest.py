@@ -12,6 +12,7 @@ from decimal import Decimal
 from src.domain.services import OrderService, DebtService, PaymentService
 from src.domain.models import Order, Debt, Payment
 from src.persistence.memory_repo import InMemoryRepository
+from src.bot.handlers import create_router
 
 
 @pytest.fixture
@@ -39,6 +40,12 @@ def debt_service(repository):
 def payment_service(repository):
     """PaymentService with real repository."""
     return PaymentService(repository)
+
+
+@pytest.fixture
+def router(order_service, debt_service, payment_service):
+    """Router wired with real services for handler-level BDD tests."""
+    return create_router(order_service, debt_service, payment_service)
 
 
 @pytest.fixture

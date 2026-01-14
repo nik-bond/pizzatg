@@ -168,8 +168,8 @@ def create_router(
         try:
             parsed = parse_order_command(message.text)
 
-            # Create order (use explicit payer from payer: marker or first participant)
-            payer = parsed.payer or parsed.participants[0]
+            # Create order (use explicit payer from payer: marker; otherwise payer is the sender)
+            payer = parsed.payer or username
             order = order_service.create_order(
                 description=parsed.description or "заказ",
                 amount=parsed.amount,
