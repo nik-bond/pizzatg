@@ -45,18 +45,51 @@ This document records how Claude AI was used in developing this project, followi
 - No confirmation flow in MVP (simpler, but less secure)
 - Single group assumed (simpler, multi-group is post-MVP)
 
+### Session 2: Bot Integration Testing (2026-01-14)
+
+**Goal:** Add comprehensive integration tests for Telegram bot handlers
+
+**What Claude did:**
+- Created test_bot_integration.py with 14 end-to-end tests
+- Built helper functions for mocking aiogram Message objects
+- Implemented `call_handler()` utility to invoke specific handlers
+- Validated complete workflows from message input to bot response
+
+**Test Categories:**
+1. **Order Flow (3 tests)**: Order creation with/without description, explicit payer
+2. **Payment Flow (2 tests)**: Full and partial debt payments
+3. **Query Commands (3 tests)**: /debts, /owed, no debts scenarios
+4. **Command Handlers (2 tests)**: /start and /help commands
+5. **Error Handling (4 tests)**: Invalid amounts, payment errors, missing username
+
+**Key insights:**
+- Router observers require accessing `.handlers` attribute, not direct iteration
+- Payer is automatically included in participants by OrderService
+- Parser extracts absolute value from negative numbers (e.g., "-100" → "100")
+- Direct handler calls with mock Messages more reliable than full dispatcher testing
+
+**Result:** All 67 tests pass (53 BDD + 14 integration)
+
 ## Test Coverage
 
-### All Features (49 scenarios)
+### All Features (53 BDD scenarios + 14 integration tests = 67 total)
 
 | Feature | Scenarios | Purpose |
 |---------|-----------|---------|
 | order_creation | 9 | Create orders with validation |
-| debt_calculation | 6 | Calculate who owes whom |
+| debt_calculation | 7 | Calculate who owes whom (including netting) |
 | payment_processing | 8 | Record and validate payments |
 | debt_query | 7 | Query current debt state |
 | persistence | 6 | SQLite data persistence |
-| bot_commands | 13 | Telegram message parsing/formatting |
+| bot_commands | 16 | Telegram message parsing/formatting |
+| **bot_integration** | **14** | **End-to-end handler tests** |
+
+**Bot Integration Tests** (new):
+- Order flow (3 tests): with/without description, explicit payer
+- Payment flow (2 tests): full and partial payments
+- Query commands (3 tests): /debts, /owed, no debts case
+- Command handlers (2 tests): /start, /help
+- Error handling (4 tests): invalid input, payment errors, missing username
 
 ### Security Scenarios
 
@@ -77,6 +110,10 @@ This document records how Claude AI was used in developing this project, followi
 | 5 | febeef9 | feat | Telegram bot with aiogram handlers |
 | 6 | e5e39e6 | docs | Update README with bot usage |
 | 7 | cf0218e | security | Comprehensive security review |
+| 8 | ffa84dd | feat | Track debt descriptions |
+| 9 | b9e1c28 | feat | Add explicit payer syntax (payer:@username) |
+| 10 | d9537cb | feat | Automatic debt netting with breakdown |
+| 11 | *pending* | test | Bot integration tests (67 tests passing) |
 
 ## Evolution Plan
 
@@ -102,12 +139,19 @@ This document records how Claude AI was used in developing this project, followi
 - SQL injection prevention confirmed
 - Abuse cases identified with mitigations
 
-### Remaining Phases
-- E4: Payment confirmation flow
-- E5: Debt aging (days since order)
-- E6: Group isolation by chat_id
+### Phase E4: Bot Integration Testing (COMPLETE) ✅
+- Created 14 end-to-end integration tests
+- Direct handler testing with mock Message objects
+- Full workflow validation: message → handler → service → response
+- Error handling coverage for all edge cases
+- All 67 tests passing (53 BDD + 14 integration)
 
-## Final Test Count: 49 scenarios
+### Remaining Phases
+- E5: Payment confirmation flow
+- E6: Debt aging (days since order)
+- E7: Group isolation by chat_id
+
+## Final Test Count: 67 tests (53 BDD scenarios + 14 integration tests)
 
 ## Lessons Learned
 
