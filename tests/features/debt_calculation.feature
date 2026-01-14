@@ -1,44 +1,43 @@
-# language: ru
-Feature: Расчёт долгов
-  Как система учёта расходов
-  Я должна корректно рассчитывать кто кому и сколько должен
-  Чтобы участники знали свои обязательства
+Feature: Debt Calculation
+  As a expense tracking system
+  I need to correctly calculate who owes whom
+  So that participants know their obligations
 
-  # MVP: долги создаются от участников к плательщику
+  # MVP: debts are created from participants to payer
 
-  Scenario: Долги создаются после заказа
-    Given пользователь "ivan" является плательщиком
-    And создан заказ "пицца" на 3000 рублей с участниками "ivan", "petya", "masha"
-    Then "petya" должен "ivan" 1000 рублей
-    And "masha" должен "ivan" 1000 рублей
-    And "ivan" никому не должен
+  Scenario: Debts created after order
+    Given user "ivan" is the payer
+    And order "пицца" for 3000 rubles is created with participants "ivan", "petya", "masha"
+    Then "petya" owes "ivan" 1000 rubles
+    And "masha" owes "ivan" 1000 rubles
+    And "ivan" owes nothing
 
-  Scenario: Плательщик не должен сам себе
-    Given пользователь "ivan" является плательщиком
-    And создан заказ "пицца" на 2000 рублей с участниками "ivan", "petya"
-    Then "ivan" не имеет долга перед "ivan"
-    And "petya" должен "ivan" 1000 рублей
+  Scenario: Payer does not owe themselves
+    Given user "ivan" is the payer
+    And order "пицца" for 2000 rubles is created with participants "ivan", "petya"
+    Then "ivan" has no debt to "ivan"
+    And "petya" owes "ivan" 1000 rubles
 
-  Scenario: Накопление долгов от нескольких заказов
-    Given пользователь "ivan" является плательщиком
-    And создан заказ "пицца" на 2000 рублей с участниками "ivan", "petya"
-    And создан заказ "напитки" на 1000 рублей с участниками "ivan", "petya"
-    Then "petya" должен "ivan" 1500 рублей
+  Scenario: Debts accumulate from multiple orders
+    Given user "ivan" is the payer
+    And order "пицца" for 2000 rubles is created with participants "ivan", "petya"
+    And order "напитки" for 1000 rubles is created with participants "ivan", "petya"
+    Then "petya" owes "ivan" 1500 rubles
 
-  Scenario: Взаимные долги учитываются отдельно
-    Given создан заказ "пицца" на 2000 рублей с плательщиком "ivan" и участниками "ivan", "petya"
-    And создан заказ "суши" на 2000 рублей с плательщиком "petya" и участниками "ivan", "petya"
-    Then "petya" должен "ivan" 1000 рублей
-    And "ivan" должен "petya" 1000 рублей
+  Scenario: Mutual debts tracked separately
+    Given order "пицца" for 2000 rubles is created with payer "ivan" and participants "ivan", "petya"
+    And order "суши" for 2000 rubles is created with payer "petya" and participants "ivan", "petya"
+    Then "petya" owes "ivan" 1000 rubles
+    And "ivan" owes "petya" 1000 rubles
 
-  Scenario: Расчёт чистого баланса между двумя пользователями
-    Given создан заказ "пицца" на 2000 рублей с плательщиком "ivan" и участниками "ivan", "petya"
-    And создан заказ "суши" на 2000 рублей с плательщиком "petya" и участниками "ivan", "petya"
-    When запрашивается чистый баланс между "ivan" и "petya"
-    Then чистый баланс равен 0 рублей
+  Scenario: Net balance equals zero
+    Given order "пицца" for 2000 rubles is created with payer "ivan" and participants "ivan", "petya"
+    And order "суши" for 2000 rubles is created with payer "petya" and participants "ivan", "petya"
+    When net balance is requested between "ivan" and "petya"
+    Then net balance is 0 rubles
 
-  Scenario: Чистый баланс при неравных долгах
-    Given создан заказ "пицца" на 3000 рублей с плательщиком "ivan" и участниками "ivan", "petya"
-    And создан заказ "суши" на 1000 рублей с плательщиком "petya" и участниками "ivan", "petya"
-    When запрашивается чистый баланс между "ivan" и "petya"
-    Then "petya" должен "ivan" чистыми 1000 рублей
+  Scenario: Net balance with unequal debts
+    Given order "пицца" for 3000 rubles is created with payer "ivan" and participants "ivan", "petya"
+    And order "суши" for 1000 rubles is created with payer "petya" and participants "ivan", "petya"
+    When net balance is requested between "ivan" and "petya"
+    Then "petya" owes "ivan" net 1000 rubles

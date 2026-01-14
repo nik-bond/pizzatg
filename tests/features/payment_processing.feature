@@ -1,59 +1,58 @@
-# language: ru
-Feature: Обработка платежей
-  Как должник
-  Я хочу фиксировать оплату долга
-  Чтобы уменьшить свою задолженность
+Feature: Payment Processing
+  As a debtor
+  I want to record debt payments
+  So that my debt is reduced
 
-  # MVP: простые платежи уменьшают долг
+  # MVP: simple payments reduce debt
 
   Background:
-    Given создан заказ "пицца" на 3000 рублей с плательщиком "ivan" и участниками "ivan", "petya", "masha"
-    # petya должен ivan 1000, masha должен ivan 1000
+    Given order "пицца" for 3000 rubles is created with payer "ivan" and participants "ivan", "petya", "masha"
+    # petya owes ivan 1000, masha owes ivan 1000
 
-  Scenario: Полная оплата долга
-    Given "petya" должен "ivan" 1000 рублей
-    When "petya" платит "ivan" 1000 рублей
-    Then платёж успешно записан
-    And "petya" должен "ivan" 0 рублей
+  Scenario: Full debt payment
+    Given "petya" owes "ivan" 1000 rubles
+    When "petya" pays "ivan" 1000 rubles
+    Then payment is recorded successfully
+    And "petya" owes "ivan" 0 rubles
 
-  Scenario: Частичная оплата долга
-    Given "petya" должен "ivan" 1000 рублей
-    When "petya" платит "ivan" 400 рублей
-    Then платёж успешно записан
-    And "petya" должен "ivan" 600 рублей
+  Scenario: Partial debt payment
+    Given "petya" owes "ivan" 1000 rubles
+    When "petya" pays "ivan" 400 rubles
+    Then payment is recorded successfully
+    And "petya" owes "ivan" 600 rubles
 
-  Scenario: Несколько частичных платежей
-    Given "petya" должен "ivan" 1000 рублей
-    When "petya" платит "ivan" 300 рублей
-    And "petya" платит "ivan" 300 рублей
-    Then "petya" должен "ivan" 400 рублей
+  Scenario: Multiple partial payments
+    Given "petya" owes "ivan" 1000 rubles
+    When "petya" pays "ivan" 300 rubles
+    And "petya" pays "ivan" 300 rubles
+    Then "petya" owes "ivan" 400 rubles
 
-  Scenario: Ошибка при оплате больше долга
-    Given "petya" должен "ivan" 1000 рублей
-    When "petya" пытается заплатить "ivan" 1500 рублей
-    Then возникает ошибка "Сумма платежа превышает долг"
-    And долг "petya" перед "ivan" остаётся 1000 рублей
+  Scenario: Error on overpayment
+    Given "petya" owes "ivan" 1000 rubles
+    When "petya" tries to pay "ivan" 1500 rubles
+    Then error "Сумма платежа превышает долг" occurs
+    And debt of "petya" to "ivan" remains 1000 rubles
 
-  Scenario: Ошибка при отрицательном платеже
-    Given "petya" должен "ivan" 1000 рублей
-    When "petya" пытается заплатить "ivan" -100 рублей
-    Then возникает ошибка "Сумма платежа должна быть положительной"
-    And долг "petya" перед "ivan" остаётся 1000 рублей
+  Scenario: Error on negative payment
+    Given "petya" owes "ivan" 1000 rubles
+    When "petya" tries to pay "ivan" -100 rubles
+    Then error "Сумма платежа должна быть положительной" occurs
+    And debt of "petya" to "ivan" remains 1000 rubles
 
-  Scenario: Ошибка при нулевом платеже
-    Given "petya" должен "ivan" 1000 рублей
-    When "petya" пытается заплатить "ivan" 0 рублей
-    Then возникает ошибка "Сумма платежа должна быть положительной"
-    And долг "petya" перед "ivan" остаётся 1000 рублей
+  Scenario: Error on zero payment
+    Given "petya" owes "ivan" 1000 rubles
+    When "petya" tries to pay "ivan" 0 rubles
+    Then error "Сумма платежа должна быть положительной" occurs
+    And debt of "petya" to "ivan" remains 1000 rubles
 
-  Scenario: Ошибка при оплате несуществующего долга
-    Given "masha" не должен "petya" ничего
-    When "masha" пытается заплатить "petya" 500 рублей
-    Then возникает ошибка "Долг не найден"
+  Scenario: Error on non-existent debt
+    Given "masha" does not owe "petya" anything
+    When "masha" tries to pay "petya" 500 rubles
+    Then error "Долг не найден" occurs
 
-  Scenario: Платёж не влияет на долги других участников
-    Given "petya" должен "ivan" 1000 рублей
-    And "masha" должен "ivan" 1000 рублей
-    When "petya" платит "ivan" 1000 рублей
-    Then "petya" должен "ivan" 0 рублей
-    And "masha" должен "ivan" 1000 рублей
+  Scenario: Payment does not affect other debts
+    Given "petya" owes "ivan" 1000 rubles
+    And "masha" owes "ivan" 1000 rubles
+    When "petya" pays "ivan" 1000 rubles
+    Then "petya" owes "ivan" 0 rubles
+    And "masha" owes "ivan" 1000 rubles

@@ -1,57 +1,54 @@
-# language: ru
-Feature: Просмотр долгов
-  Как пользователь системы
-  Я хочу видеть текущее состояние долгов
-  Чтобы понимать кто кому и сколько должен
+Feature: Debt Query
+  As a user
+  I want to see current debt status
+  So that I know who owes whom
 
-  # MVP: базовые запросы долгов
+  # MVP: basic debt queries
 
-  Scenario: Просмотр своих долгов (я должен)
-    Given создан заказ "пицца" на 3000 рублей с плательщиком "ivan" и участниками "ivan", "petya", "masha"
-    And создан заказ "суши" на 2000 рублей с плательщиком "anna" и участниками "anna", "petya"
-    When "petya" запрашивает свои долги
-    Then результат содержит долг 1000 рублей перед "ivan"
-    And результат содержит долг 1000 рублей перед "anna"
-    And общая сумма долгов равна 2000 рублей
+  Scenario: Query my debts
+    Given order "пицца" for 3000 rubles is created with payer "ivan" and participants "ivan", "petya", "masha"
+    And order "суши" for 2000 rubles is created with payer "anna" and participants "anna", "petya"
+    When "petya" queries their debts
+    Then result contains debt of 1000 rubles to "ivan"
+    And result contains debt of 1000 rubles to "anna"
+    And total debt is 2000 rubles
 
-  Scenario: Просмотр кто должен мне
-    Given создан заказ "пицца" на 3000 рублей с плательщиком "ivan" и участниками "ivan", "petya", "masha"
-    When "ivan" запрашивает кто ему должен
-    Then результат содержит долг "petya" на 1000 рублей
-    And результат содержит долг "masha" на 1000 рублей
-    And общая сумма к получению равна 2000 рублей
+  Scenario: Query who owes me
+    Given order "пицца" for 3000 rubles is created with payer "ivan" and participants "ivan", "petya", "masha"
+    When "ivan" queries who owes them
+    Then result contains debt from "petya" of 1000 rubles
+    And result contains debt from "masha" of 1000 rubles
+    And total owed is 2000 rubles
 
-  Scenario: Нет долгов
-    Given пользователь "newuser" существует
-    And у "newuser" нет заказов
-    When "newuser" запрашивает свои долги
-    Then результат пуст
-    And сообщение "Долгов нет"
+  Scenario: No debts
+    Given user "newuser" exists
+    And "newuser" has no orders
+    When "newuser" queries their debts
+    Then result is empty
+    And message is "Долгов нет"
 
-  Scenario: Никто не должен
-    Given пользователь "newuser" существует
-    And у "newuser" нет заказов
-    When "newuser" запрашивает кто ему должен
-    Then результат пуст
-    And сообщение "Вам никто не должен"
+  Scenario: Nobody owes me
+    Given user "newuser" exists
+    And "newuser" has no orders
+    When "newuser" queries who owes them
+    Then result is empty
+    And message is "Вам никто не должен"
 
-  Scenario: Долги после частичной оплаты
-    Given создан заказ "пицца" на 2000 рублей с плательщиком "ivan" и участниками "ivan", "petya"
-    And "petya" заплатил "ivan" 500 рублей
-    When "petya" запрашивает свои долги
-    Then результат содержит долг 500 рублей перед "ivan"
+  Scenario: Debts after partial payment
+    Given order "пицца" for 2000 rubles is created with payer "ivan" and participants "ivan", "petya"
+    And "petya" paid "ivan" 500 rubles
+    When "petya" queries their debts
+    Then result contains debt of 500 rubles to "ivan"
 
-  Scenario: Долги полностью погашены
-    Given создан заказ "пицца" на 2000 рублей с плательщиком "ivan" и участниками "ivan", "petya"
-    And "petya" заплатил "ivan" 1000 рублей
-    When "petya" запрашивает свои долги
-    Then результат пуст
-    And сообщение "Долгов нет"
+  Scenario: Debts fully paid
+    Given order "пицца" for 2000 rubles is created with payer "ivan" and participants "ivan", "petya"
+    And "petya" paid "ivan" 1000 rubles
+    When "petya" queries their debts
+    Then result is empty
+    And message is "Долгов нет"
 
-  Scenario: Просмотр всех долгов в группе
-    Given создан заказ "пицца" на 3000 рублей с плательщиком "ivan" и участниками "ivan", "petya", "masha"
-    When запрашиваются все долги в группе
-    Then результат содержит:
-      | должник | кредитор | сумма |
-      | petya   | ivan     | 1000  |
-      | masha   | ivan     | 1000  |
+  Scenario: Query all group debts
+    Given order "пицца" for 3000 rubles is created with payer "ivan" and participants "ivan", "petya", "masha"
+    When all group debts are queried
+    Then result contains group debt from "petya" to "ivan" of 1000 rubles
+    And result contains group debt from "masha" to "ivan" of 1000 rubles

@@ -16,7 +16,7 @@ scenarios('../features/order_creation.feature')
 # GIVEN steps
 # ---------------------------------------------------------------------------
 
-@given(parsers.parse('пользователь "{username}" является плательщиком'))
+@given(parsers.parse('user "{username}" is the payer'))
 def set_payer(context, username: str):
     """Set the payer for the order."""
     context.payer = username
@@ -26,8 +26,8 @@ def set_payer(context, username: str):
 # WHEN steps
 # ---------------------------------------------------------------------------
 
-@when(parsers.parse('создается заказ "{description}" на сумму {amount:d} рублей'))
-def create_order_with_amount(context, order_service, description: str, amount: int):
+@when(parsers.parse('order "{description}" is created for {amount:d} rubles'))
+def create_order_with_amount(context, description: str, amount: int):
     """
     Attempt to create an order with given description and amount.
     Stores result or error in context for later assertions.
@@ -36,7 +36,7 @@ def create_order_with_amount(context, order_service, description: str, amount: i
     context.amount = Decimal(amount)
 
 
-@when(parsers.parse('участники заказа: "{participants}"'))
+@when(parsers.parse('participants are "{participants}"'))
 def set_participants_and_execute(context, order_service, participants: str):
     """
     Set participants and execute order creation.
@@ -46,7 +46,7 @@ def set_participants_and_execute(context, order_service, participants: str):
     context.participants = [p.strip().strip('"') for p in participants.split(',')]
 
     try:
-        # REAL domain call - will fail until implemented
+        # REAL domain call - calls actual implementation
         context.order = order_service.create_order(
             description=context.description,
             amount=context.amount,
@@ -59,7 +59,7 @@ def set_participants_and_execute(context, order_service, participants: str):
         context.error = e
 
 
-@when('участники заказа отсутствуют')
+@when('participants list is empty')
 def set_no_participants_and_execute(context, order_service):
     """Execute order creation with empty participants list."""
     context.participants = []
@@ -81,14 +81,14 @@ def set_no_participants_and_execute(context, order_service):
 # THEN steps
 # ---------------------------------------------------------------------------
 
-@then('заказ успешно создан')
+@then('order is successfully created')
 def order_created_successfully(context):
     """Verify order was created without errors."""
     assert context.error is None, f"Expected no error, got: {context.error}"
     assert context.order is not None, "Order should be created"
 
 
-@then(parsers.parse('сумма на каждого участника равна {expected:f} рублей'))
+@then(parsers.parse('per person amount is {expected:f} rubles'))
 def verify_per_person_amount(context, expected: float):
     """Verify the calculated per-person share."""
     expected_decimal = Decimal(str(expected))
@@ -99,7 +99,7 @@ def verify_per_person_amount(context, expected: float):
         f"Expected {expected_decimal} per person, got {actual}"
 
 
-@then(parsers.parse('возникает ошибка "{expected_message}"'))
+@then(parsers.parse('error "{expected_message}" occurs'))
 def verify_error_message(context, expected_message: str):
     """Verify that the expected error was raised."""
     assert context.error is not None, "Expected an error but none occurred"
@@ -107,13 +107,13 @@ def verify_error_message(context, expected_message: str):
         f"Expected error containing '{expected_message}', got: {context.error}"
 
 
-@then('заказ не создан')
+@then('order is not created')
 def order_not_created(context):
     """Verify order was not created due to error."""
     assert context.order is None, "Order should not be created when there's an error"
 
 
-@then(parsers.parse('"{username}" включен в список участников'))
+@then(parsers.parse('"{username}" is included in participants'))
 def verify_participant_included(context, username: str):
     """Verify that the specified user is in the participants list."""
     assert username in context.order.participants, \

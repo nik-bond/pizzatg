@@ -15,7 +15,7 @@ scenarios('../features/payment_processing.feature')
 # GIVEN steps (Background)
 # ---------------------------------------------------------------------------
 
-@given(parsers.parse('создан заказ "{description}" на {amount:d} рублей с плательщиком "{payer}" и участниками "{participants}"'), target_fixture='setup_order')
+@given(parsers.parse('order "{description}" for {amount:d} rubles is created with payer "{payer}" and participants "{participants}"'))
 def setup_order_background(context, order_service, debt_service, description: str, amount: int, payer: str, participants: str):
     """Background: Create order and debts for payment tests."""
     participant_list = [p.strip().strip('"') for p in participants.split(',')]
@@ -31,7 +31,7 @@ def setup_order_background(context, order_service, debt_service, description: st
     return context
 
 
-@given(parsers.parse('"{debtor}" должен "{creditor}" {amount:d} рублей'), target_fixture='verify_initial_debt')
+@given(parsers.parse('"{debtor}" owes "{creditor}" {amount:d} rubles'))
 def verify_initial_debt(context, debt_service, debtor: str, creditor: str, amount: int):
     """Verify initial debt state (precondition check)."""
     actual = debt_service.get_debt(debtor, creditor)
@@ -41,7 +41,7 @@ def verify_initial_debt(context, debt_service, debtor: str, creditor: str, amoun
     return True
 
 
-@given(parsers.parse('"{user}" не должен "{creditor}" ничего'))
+@given(parsers.parse('"{user}" does not owe "{creditor}" anything'))
 def verify_no_initial_debt(context, debt_service, user: str, creditor: str):
     """Verify no debt exists (precondition check)."""
     actual = debt_service.get_debt(user, creditor)
@@ -53,7 +53,7 @@ def verify_no_initial_debt(context, debt_service, user: str, creditor: str):
 # WHEN steps
 # ---------------------------------------------------------------------------
 
-@when(parsers.parse('"{debtor}" платит "{creditor}" {amount:d} рублей'))
+@when(parsers.parse('"{debtor}" pays "{creditor}" {amount:d} rubles'))
 def make_payment(context, payment_service, debtor: str, creditor: str, amount: int):
     """Make a payment from debtor to creditor."""
     try:
@@ -68,7 +68,7 @@ def make_payment(context, payment_service, debtor: str, creditor: str, amount: i
         context.error = e
 
 
-@when(parsers.parse('"{debtor}" пытается заплатить "{creditor}" {amount:d} рублей'))
+@when(parsers.parse('"{debtor}" tries to pay "{creditor}" {amount:d} rubles'))
 def attempt_payment(context, payment_service, debtor: str, creditor: str, amount: int):
     """Attempt a payment that may fail."""
     try:
@@ -87,14 +87,14 @@ def attempt_payment(context, payment_service, debtor: str, creditor: str, amount
 # THEN steps
 # ---------------------------------------------------------------------------
 
-@then('платёж успешно записан')
+@then('payment is recorded successfully')
 def payment_recorded(context):
     """Verify payment was recorded successfully."""
     assert context.error is None, f"Expected no error, got: {context.error}"
     assert context.payment is not None, "Payment should be recorded"
 
 
-@then(parsers.parse('"{debtor}" должен "{creditor}" {amount:d} рублей'))
+@then(parsers.parse('"{debtor}" owes "{creditor}" {amount:d} rubles'))
 def verify_remaining_debt(context, debt_service, debtor: str, creditor: str, amount: int):
     """Verify remaining debt after payment."""
     actual = debt_service.get_debt(debtor, creditor)
@@ -103,7 +103,7 @@ def verify_remaining_debt(context, debt_service, debtor: str, creditor: str, amo
         f"Expected {debtor} to owe {creditor} {expected}, got {actual}"
 
 
-@then(parsers.parse('долг "{debtor}" перед "{creditor}" остаётся {amount:d} рублей'))
+@then(parsers.parse('debt of "{debtor}" to "{creditor}" remains {amount:d} rubles'))
 def verify_debt_unchanged(context, debt_service, debtor: str, creditor: str, amount: int):
     """Verify debt remains unchanged after failed payment."""
     actual = debt_service.get_debt(debtor, creditor)
@@ -112,7 +112,7 @@ def verify_debt_unchanged(context, debt_service, debtor: str, creditor: str, amo
         f"Expected debt to remain {expected}, got {actual}"
 
 
-@then(parsers.parse('возникает ошибка "{expected_message}"'))
+@then(parsers.parse('error "{expected_message}" occurs'))
 def verify_payment_error(context, expected_message: str):
     """Verify expected error message."""
     assert context.error is not None, "Expected an error but none occurred"

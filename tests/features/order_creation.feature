@@ -1,69 +1,68 @@
-# language: ru
-Feature: Создание заказа
-  Как участник совместного заказа
-  Я хочу зафиксировать расход с указанием суммы и участников
-  Чтобы система могла рассчитать кто кому должен
+Feature: Order Creation
+  As a participant in a shared order
+  I want to record an expense with amount and participants
+  So that the system can calculate who owes whom
 
-  # MVP: базовое создание заказа с равным делением
+  # MVP: basic order creation with equal split
 
-  Scenario: Создание заказа с тремя участниками
-    Given пользователь "ivan" является плательщиком
-    When создается заказ "пицца" на сумму 3000 рублей
-    And участники заказа: "ivan", "petya", "masha"
-    Then заказ успешно создан
-    And сумма на каждого участника равна 1000 рублей
+  Scenario: Create order with three participants
+    Given user "ivan" is the payer
+    When order "пицца" is created for 3000 rubles
+    And participants are "ivan", "petya", "masha"
+    Then order is successfully created
+    And per person amount is 1000.00 rubles
 
-  Scenario: Создание заказа с двумя участниками
-    Given пользователь "anna" является плательщиком
-    When создается заказ "суши" на сумму 2000 рублей
-    And участники заказа: "anna", "boris"
-    Then заказ успешно создан
-    And сумма на каждого участника равна 1000 рублей
+  Scenario: Create order with two participants
+    Given user "anna" is the payer
+    When order "суши" is created for 2000 rubles
+    And participants are "anna", "boris"
+    Then order is successfully created
+    And per person amount is 1000.00 rubles
 
-  Scenario: Создание заказа с неделимой суммой
-    Given пользователь "ivan" является плательщиком
-    When создается заказ "кофе" на сумму 100 рублей
-    And участники заказа: "ivan", "petya", "masha"
-    Then заказ успешно создан
-    And сумма на каждого участника равна 33.33 рублей
+  Scenario: Create order with indivisible amount
+    Given user "ivan" is the payer
+    When order "кофе" is created for 100 rubles
+    And participants are "ivan", "petya", "masha"
+    Then order is successfully created
+    And per person amount is 33.33 rubles
 
-  Scenario Outline: Ошибка при некорректной сумме
-    Given пользователь "ivan" является плательщиком
-    When создается заказ "еда" на сумму <сумма> рублей
-    And участники заказа: "ivan", "petya"
-    Then возникает ошибка "<сообщение>"
-    And заказ не создан
+  Scenario Outline: Error on invalid amount
+    Given user "ivan" is the payer
+    When order "еда" is created for <amount> rubles
+    And participants are "ivan", "petya"
+    Then error "<message>" occurs
+    And order is not created
 
     Examples:
-      | сумма  | сообщение                          |
-      | 0      | Сумма должна быть положительной    |
-      | -100   | Сумма должна быть положительной    |
+      | amount | message                           |
+      | 0      | Сумма должна быть положительной   |
+      | -100   | Сумма должна быть положительной   |
 
-  Scenario: Ошибка при слишком большой сумме
-    Given пользователь "ivan" является плательщиком
-    When создается заказ "яхта" на сумму 1000000001 рублей
-    And участники заказа: "ivan", "petya"
-    Then возникает ошибка "Сумма превышает допустимый лимит"
-    And заказ не создан
+  Scenario: Error on amount too large
+    Given user "ivan" is the payer
+    When order "яхта" is created for 1000000001 rubles
+    And participants are "ivan", "petya"
+    Then error "Сумма превышает допустимый лимит" occurs
+    And order is not created
 
-  Scenario: Ошибка при отсутствии участников
-    Given пользователь "ivan" является плательщиком
-    When создается заказ "пицца" на сумму 1000 рублей
-    And участники заказа отсутствуют
-    Then возникает ошибка "Требуется минимум два участника"
-    And заказ не создан
+  Scenario: Error on empty participants
+    Given user "ivan" is the payer
+    When order "пицца" is created for 1000 rubles
+    And participants list is empty
+    Then error "Требуется минимум два участника" occurs
+    And order is not created
 
-  Scenario: Ошибка при одном участнике
-    Given пользователь "ivan" является плательщиком
-    When создается заказ "пицца" на сумму 1000 рублей
-    And участники заказа: "ivan"
-    Then возникает ошибка "Требуется минимум два участника"
-    And заказ не создан
+  Scenario: Error on single participant
+    Given user "ivan" is the payer
+    When order "пицца" is created for 1000 rubles
+    And participants are "ivan"
+    Then error "Требуется минимум два участника" occurs
+    And order is not created
 
-  Scenario: Плательщик автоматически включается в участники
-    Given пользователь "ivan" является плательщиком
-    When создается заказ "пицца" на сумму 2000 рублей
-    And участники заказа: "petya", "masha"
-    Then заказ успешно создан
-    And "ivan" включен в список участников
-    And сумма на каждого участника равна 666.67 рублей
+  Scenario: Payer automatically included in participants
+    Given user "ivan" is the payer
+    When order "пицца" is created for 2000 rubles
+    And participants are "petya", "masha"
+    Then order is successfully created
+    And "ivan" is included in participants
+    And per person amount is 666.67 rubles

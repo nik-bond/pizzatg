@@ -15,7 +15,13 @@ scenarios('../features/debt_calculation.feature')
 # GIVEN steps
 # ---------------------------------------------------------------------------
 
-@given(parsers.parse('создан заказ "{description}" на {amount:d} рублей с участниками "{participants}"'))
+@given(parsers.parse('user "{username}" is the payer'))
+def set_payer(context, username: str):
+    """Set the payer for the order."""
+    context.payer = username
+
+
+@given(parsers.parse('order "{description}" for {amount:d} rubles is created with participants "{participants}"'))
 def create_order_with_participants(context, order_service, debt_service, description: str, amount: int, participants: str):
     """Create an order and generate debts."""
     participant_list = [p.strip().strip('"') for p in participants.split(',')]
@@ -33,7 +39,7 @@ def create_order_with_participants(context, order_service, debt_service, descrip
     context.debts = debt_service.create_debts_from_order(context.order)
 
 
-@given(parsers.parse('создан заказ "{description}" на {amount:d} рублей с плательщиком "{payer}" и участниками "{participants}"'))
+@given(parsers.parse('order "{description}" for {amount:d} rubles is created with payer "{payer}" and participants "{participants}"'))
 def create_order_with_explicit_payer(context, order_service, debt_service, description: str, amount: int, payer: str, participants: str):
     """Create an order with explicitly specified payer."""
     participant_list = [p.strip().strip('"') for p in participants.split(',')]
@@ -52,7 +58,7 @@ def create_order_with_explicit_payer(context, order_service, debt_service, descr
 # WHEN steps
 # ---------------------------------------------------------------------------
 
-@when(parsers.parse('запрашивается чистый баланс между "{user1}" и "{user2}"'))
+@when(parsers.parse('net balance is requested between "{user1}" and "{user2}"'))
 def query_net_balance(context, debt_service, user1: str, user2: str):
     """Query the net balance between two users."""
     context.query_result = debt_service.get_net_balance(user1, user2)
@@ -62,7 +68,7 @@ def query_net_balance(context, debt_service, user1: str, user2: str):
 # THEN steps
 # ---------------------------------------------------------------------------
 
-@then(parsers.parse('"{debtor}" должен "{creditor}" {amount:d} рублей'))
+@then(parsers.parse('"{debtor}" owes "{creditor}" {amount:d} rubles'))
 def verify_debt_amount(context, debt_service, debtor: str, creditor: str, amount: int):
     """Verify that debtor owes creditor the specified amount."""
     actual_debt = debt_service.get_debt(debtor, creditor)
@@ -72,7 +78,7 @@ def verify_debt_amount(context, debt_service, debtor: str, creditor: str, amount
         f"Expected {debtor} to owe {creditor} {expected}, got {actual_debt}"
 
 
-@then(parsers.parse('"{user}" никому не должен'))
+@then(parsers.parse('"{user}" owes nothing'))
 def verify_no_debts(context, debt_service, user: str):
     """Verify user has no outgoing debts."""
     total_owed = debt_service.get_total_owed_by(user)
@@ -80,7 +86,7 @@ def verify_no_debts(context, debt_service, user: str):
         f"Expected {user} to owe nothing, but owes {total_owed}"
 
 
-@then(parsers.parse('"{user}" не имеет долга перед "{creditor}"'))
+@then(parsers.parse('"{user}" has no debt to "{creditor}"'))
 def verify_no_debt_to_creditor(context, debt_service, user: str, creditor: str):
     """Verify user has no debt to specific creditor."""
     debt = debt_service.get_debt(user, creditor)
@@ -88,7 +94,7 @@ def verify_no_debt_to_creditor(context, debt_service, user: str, creditor: str):
         f"Expected no debt from {user} to {creditor}, got {debt}"
 
 
-@then(parsers.parse('чистый баланс равен {amount:d} рублей'))
+@then(parsers.parse('net balance is {amount:d} rubles'))
 def verify_net_balance_zero(context, amount: int):
     """Verify net balance equals specified amount."""
     expected = Decimal(amount)
@@ -96,7 +102,7 @@ def verify_net_balance_zero(context, amount: int):
         f"Expected net balance {expected}, got {context.query_result['net_balance']}"
 
 
-@then(parsers.parse('"{debtor}" должен "{creditor}" чистыми {amount:d} рублей'))
+@then(parsers.parse('"{debtor}" owes "{creditor}" net {amount:d} rubles'))
 def verify_net_debt(context, debtor: str, creditor: str, amount: int):
     """Verify net debt between two users."""
     expected = Decimal(amount)
