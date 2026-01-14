@@ -66,19 +66,19 @@ This document records how Claude AI was used in developing this project, followi
 
 ## Commit History
 
-Will be updated as development progresses.
-
-| Commit | Type | Description |
-|--------|------|-------------|
-| 1 | docs | Initial project structure and BDD features |
+| # | Hash | Type | Description |
+|---|------|------|-------------|
+| 1 | 93a8cdc | docs | Initial project structure and BDD features |
+| 2 | 232b907 | feat | MVP domain logic with full test coverage |
 
 ## Evolution Plan
 
-### MVP (Current)
+### MVP (COMPLETE)
 - Order creation with equal split
 - Debt tracking
 - Payment recording
 - Basic queries
+- **30 tests passing**
 
 ### Post-MVP Phases
 1. SQLite persistence layer
@@ -90,4 +90,12 @@ Will be updated as development progresses.
 
 ## Lessons Learned
 
-*Will be updated as project progresses.*
+### Session 1 Insights
+
+1. **pytest-bdd language directive**: Using `# language: ru` requires Russian Gherkin keywords (Функция, Сценарий). Simpler to use English keywords with Russian content.
+
+2. **Step definition reuse**: pytest-bdd requires unique step definitions per test file unless using conftest.py fixtures carefully.
+
+3. **Decimal precision**: Using `Decimal(str(float_value))` ensures accurate conversion from float test parameters.
+
+4. **Repository pattern**: InMemoryRepository enables fast isolated tests while SQLite can be swapped in for integration tests.
