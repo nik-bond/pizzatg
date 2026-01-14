@@ -174,13 +174,80 @@ def format_help() -> str:
         "💸 Оплата долга:\n"
         "   /paid @кому сумма\n"
         "   Пример: /paid @ivan 1000\n\n"
-        "📋 Просмотр долгов:\n"
-        "   /debts - мои долги\n"
-        "   /owed - кто мне должен\n\n"
+        "📊 Просмотр долгов:\n"
+        "   /debts - баланс с учётом взаимозачёта\n"
+        "   💡 Если я должен 400₽ за десерт, но мне должны 200₽ за кофе,\n"
+        "      покажет итого: я должен 200₽\n\n"
         "ℹ️ Другое:\n"
         "   /start - начало работы\n"
         "   /help - эта справка"
     )
+
+
+def format_consolidated_debts(result: dict) -> str:
+    """
+    Format consolidated debt view with netting and breakdown.
+
+    Shows net balance with each person, including what makes up the balance.
+
+    Args:
+        result: Result from DebtService.get_consolidated_debts()
+
+    Returns:
+        Formatted message string
+    """
+    message = result.get('message')
+    if message:
+        return message
+
+    debts = result.get('debts', [])
+    if not debts:
+        return "🎉 Нет долгов!"
+
+    lines = ["📊 Баланс долгов:\n"]
+
+    for debt in debts:
+        cp = debt['counterparty']
+        i_owe = debt['i_owe']
+        they_owe = debt['they_owe']
+        net_amount = debt['net_amount']
+        direction = debt['net_direction']
+
+        lines.append(f"👤 @{cp}:")
+
+        # Show breakdown
+        if i_owe:
+            desc = f" ({i_owe['description']})" if i_owe['description'] else ""
+            lines.append(f"   ↑ Я должен: {i_owe['amount']:.0f} ₽{desc}")
+
+        if they_owe:
+            desc = f" ({they_owe['description']})" if they_owe['description'] else ""
+            lines.append(f"   ↓ Мне должен: {they_owe['amount']:.0f} ₽{desc}")
+
+        # Show net result
+        if direction == 'i_owe':
+            lines.append(f"   ═══ Итого: я должен {net_amount:.0f} ₽")
+        elif direction == 'they_owe':
+            lines.append(f"   ═══ Итого: мне должен {net_amount:.0f} ₽")
+        else:
+            lines.append(f"   ═══ Итого: квиты!")
+
+        lines.append("")  # Empty line between people
+
+    # Summary
+    total_i_owe = result.get('total_i_owe', Decimal('0'))
+    total_they_owe = result.get('total_they_owe', Decimal('0'))
+
+    if total_i_owe > 0 and total_they_owe > 0:
+        lines.append(f"💰 Общий баланс:")
+        lines.append(f"   Я должен: {total_i_owe:.0f} ₽")
+        lines.append(f"   Мне должны: {total_they_owe:.0f} ₽")
+    elif total_i_owe > 0:
+        lines.append(f"💰 Всего я должен: {total_i_owe:.0f} ₽")
+    elif total_they_owe > 0:
+        lines.append(f"💰 Всего мне должны: {total_they_owe:.0f} ₽")
+
+    return "\n".join(lines)
 
 
 def format_all_debts(debts_result: dict) -> str:

@@ -114,3 +114,56 @@ def verify_net_debt(context, debtor: str, creditor: str, amount: int):
         f"Expected net creditor to be {creditor}, got {result['net_creditor']}"
     assert result['net_balance'] == expected, \
         f"Expected net balance {expected}, got {result['net_balance']}"
+
+
+@when(parsers.parse('consolidated debts are requested for "{user}"'))
+def query_consolidated_debts(context, debt_service, user: str):
+    """Query consolidated debts for a user."""
+    context.consolidated_result = debt_service.get_consolidated_debts(user)
+
+
+@then(parsers.parse('consolidated result shows "{counterparty}" with net "{direction}" of {amount:d} rubles'))
+def verify_consolidated_net(context, counterparty: str, direction: str, amount: int):
+    """Verify consolidated debt result."""
+    debts = context.consolidated_result['debts']
+    found = None
+    for d in debts:
+        if d['counterparty'] == counterparty:
+            found = d
+            break
+
+    assert found is not None, f"Counterparty {counterparty} not found in consolidated debts"
+    assert found['net_direction'] == direction, \
+        f"Expected direction {direction}, got {found['net_direction']}"
+    assert found['net_amount'] == Decimal(amount), \
+        f"Expected net amount {amount}, got {found['net_amount']}"
+
+
+@then(parsers.parse('breakdown shows I owe {amount:d} for "{description}"'))
+def verify_i_owe_breakdown(context, amount: int, description: str):
+    """Verify I owe breakdown in consolidated result."""
+    debts = context.consolidated_result['debts']
+    # Find the debt with the i_owe entry matching the amount
+    found = False
+    for d in debts:
+        if d['i_owe'] and d['i_owe']['amount'] == Decimal(amount):
+            assert description in d['i_owe']['description'], \
+                f"Expected description containing '{description}', got '{d['i_owe']['description']}'"
+            found = True
+            break
+    assert found, f"No i_owe entry found with amount {amount}"
+
+
+@then(parsers.parse('breakdown shows they owe {amount:d} for "{description}"'))
+def verify_they_owe_breakdown(context, amount: int, description: str):
+    """Verify they owe breakdown in consolidated result."""
+    debts = context.consolidated_result['debts']
+    # Find the debt with the they_owe entry matching the amount
+    found = False
+    for d in debts:
+        if d['they_owe'] and d['they_owe']['amount'] == Decimal(amount):
+            assert description in d['they_owe']['description'], \
+                f"Expected description containing '{description}', got '{d['they_owe']['description']}'"
+            found = True
+            break
+    assert found, f"No they_owe entry found with amount {amount}"

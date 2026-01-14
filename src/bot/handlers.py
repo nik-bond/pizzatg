@@ -23,6 +23,7 @@ from .formatters import (
     format_debt_list,
     format_owed_list,
     format_all_debts,
+    format_consolidated_debts,
     format_error,
     format_welcome,
     format_help,
@@ -57,20 +58,20 @@ def create_router(
         """Handle /help command."""
         await message.answer(format_help())
 
-    @router.message(Command("debts", "долги"))
+    @router.message(Command("debts", "долги", "balance", "баланс"))
     async def handle_debts(message: Message):
-        """Handle /debts command - show user's debts."""
+        """Handle /debts command - show consolidated debt balance."""
         username = message.from_user.username
         if not username:
             await message.answer("❌ У вас не установлен username в Telegram")
             return
 
-        result = debt_service.get_debts_by_user(username)
-        await message.answer(format_debt_list(result))
+        result = debt_service.get_consolidated_debts(username)
+        await message.answer(format_consolidated_debts(result))
 
     @router.message(Command("owed", "мнедолжны"))
     async def handle_owed(message: Message):
-        """Handle /owed command - show who owes user."""
+        """Handle /owed command - show who owes user (without netting)."""
         username = message.from_user.username
         if not username:
             await message.answer("❌ У вас не установлен username в Telegram")

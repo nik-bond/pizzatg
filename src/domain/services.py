@@ -263,6 +263,98 @@ class DebtService:
             'total': sum((d.amount for d in active_debts), Decimal('0'))
         }
 
+    def get_consolidated_debts(self, user: str) -> dict:
+        """
+        Get consolidated net debts for a user.
+
+        Calculates net balance with each counterparty, showing breakdown
+        of what user owes vs what they're owed.
+
+        Example: If user owes ivan 400 (dessert) but ivan owes user 200 (coffee),
+        net result is user owes ivan 200 with breakdown.
+
+        Returns dict with 'debts' list containing:
+        - counterparty: username of other party
+        - i_owe: amount user owes them (with description)
+        - they_owe: amount they owe user (with description)
+        - net_amount: absolute net balance
+        - net_direction: 'i_owe' or 'they_owe' or 'settled'
+        """
+        # Get all debts in both directions
+        i_owe = self._repo.get_debts_by_debtor(user)
+        they_owe = self._repo.get_debts_by_creditor(user)
+
+        # Build map of counterparties
+        counterparties = {}
+
+        for debt in i_owe:
+            if debt.is_settled:
+                continue
+            cp = debt.creditor
+            if cp not in counterparties:
+                counterparties[cp] = {'i_owe': None, 'they_owe': None}
+            counterparties[cp]['i_owe'] = {
+                'amount': debt.amount,
+                'description': debt.description
+            }
+
+        for debt in they_owe:
+            if debt.is_settled:
+                continue
+            cp = debt.debtor
+            if cp not in counterparties:
+                counterparties[cp] = {'i_owe': None, 'they_owe': None}
+            counterparties[cp]['they_owe'] = {
+                'amount': debt.amount,
+                'description': debt.description
+            }
+
+        # Calculate net for each counterparty
+        result = []
+        total_i_owe = Decimal('0')
+        total_they_owe = Decimal('0')
+
+        for cp, data in counterparties.items():
+            i_owe_amount = data['i_owe']['amount'] if data['i_owe'] else Decimal('0')
+            they_owe_amount = data['they_owe']['amount'] if data['they_owe'] else Decimal('0')
+
+            net = i_owe_amount - they_owe_amount
+
+            if net > 0:
+                direction = 'i_owe'
+                total_i_owe += net
+            elif net < 0:
+                direction = 'they_owe'
+                total_they_owe += abs(net)
+            else:
+                direction = 'settled'
+
+            result.append({
+                'counterparty': cp,
+                'i_owe': data['i_owe'],
+                'they_owe': data['they_owe'],
+                'net_amount': abs(net),
+                'net_direction': direction
+            })
+
+        # Sort by net amount descending
+        result.sort(key=lambda x: x['net_amount'], reverse=True)
+
+        if not result:
+            return {
+                'debts': [],
+                'total_i_owe': Decimal('0'),
+                'total_they_owe': Decimal('0'),
+                'message': 'Нет долгов'
+            }
+
+        return {
+            'debts': result,
+            'total_i_owe': total_i_owe,
+            'total_they_owe': total_they_owe,
+            'message': None
+        }
+
     def get_net_balance(self, user1: str, user2: str) -> dict:
         """
         Calculate net balance between two users.

@@ -41,3 +41,11 @@ Feature: Debt Calculation
     And order "суши" for 1000 rubles is created with payer "petya" and participants "ivan", "petya"
     When net balance is requested between "ivan" and "petya"
     Then "petya" owes "ivan" net 1000 rubles
+
+  Scenario: Consolidated debts show net balance with breakdown
+    Given order "десерт" for 800 rubles is created with payer "ivan" and participants "ivan", "petya"
+    And order "кофе" for 400 rubles is created with payer "petya" and participants "ivan", "petya"
+    When consolidated debts are requested for "petya"
+    Then consolidated result shows "ivan" with net "i_owe" of 200 rubles
+    And breakdown shows I owe 400 for "десерт"
+    And breakdown shows they owe 200 for "кофе"
