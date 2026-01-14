@@ -68,7 +68,7 @@ This document records how Claude AI was used in developing this project, followi
 **Goal:** Production readiness
 
 **Implementation:**
-- 14 end-to-end integration tests (total: 67 tests)
+- 14 end-to-end handler scenarios (now in BDD) — total: 72 BDD scenarios
 - Secure token storage with python-dotenv
 - Input validation for all user inputs
 - SQL injection prevention
@@ -100,7 +100,7 @@ This document records how Claude AI was used in developing this project, followi
 
 ## Test Coverage
 
-### All Features (53 BDD scenarios + 14 integration tests = 67 total)
+### All Features (72 BDD scenarios)
 
 | Feature | Scenarios | Purpose |
 |---------|-----------|---------|
@@ -110,14 +110,15 @@ This document records how Claude AI was used in developing this project, followi
 | debt_query | 7 | Query current debt state |
 | persistence | 6 | SQLite data persistence |
 | bot_commands | 16 | Telegram message parsing/formatting |
-| **bot_integration** | **14** | **End-to-end handler tests** |
+| chat_isolation | 5 | Validate per-chat data segregation |
+| **bot_integration** | **14** | **End-to-end handler workflows (BDD)** |
 
-**Bot Integration Tests** (new):
-- Order flow (3 tests): with/without description, explicit payer
-- Payment flow (2 tests): full and partial payments
-- Query commands (3 tests): /debts, /owed, no debts case
-- Command handlers (2 tests): /start, /help
-- Error handling (4 tests): invalid input, payment errors, missing username
+**Bot Integration Scenarios** (BDD):
+- Order flow (3): with/without description, explicit payer
+- Payment flow (2): full and partial payments
+- Query commands (3): /debts, /owed, no debts case
+- Command handlers (2): /start, /help
+- Error handling (4): invalid input, payment errors, missing username
 
 ### Security Scenarios
 
