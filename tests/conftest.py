@@ -47,8 +47,9 @@ def context():
     Shared context for BDD scenarios.
     Stores state between Given/When/Then steps.
     """
-    class Context:
+    class Context(dict):
         def __init__(self):
+            super().__init__()
             self.payer: str = None
             self.description: str = None
             self.amount: Decimal = None

@@ -114,8 +114,8 @@ class OrderService:
         Returns:
             Most recent Order or None if no orders found
         """
-        all_orders = self._repo.get_all_orders()
-        user_orders = [o for o in all_orders if o.created_by == created_by and o.chat_id == chat_id]
+        all_orders = self._repo.get_all_orders(chat_id)
+        user_orders = [o for o in all_orders if o.created_by == created_by]
         
         if not user_orders:
             return None

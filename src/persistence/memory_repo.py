@@ -39,9 +39,9 @@ class InMemoryRepository:
         """Get order by ID."""
         return self._orders.get(order_id)
 
-    def get_all_orders(self) -> list[Order]:
-        """Get all orders."""
-        return list(self._orders.values())
+    def get_all_orders(self, chat_id: int = 0) -> list[Order]:
+        """Get all orders in a specific chat."""
+        return [order for order in self._orders.values() if order.chat_id == chat_id]
 
     def delete_order(self, order_id: str) -> None:
         """Delete an order by ID."""
