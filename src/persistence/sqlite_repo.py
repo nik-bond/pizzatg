@@ -57,6 +57,7 @@ class SQLiteRepository:
     def _init_schema(self) -> None:
         """Initialize database schema if not exists."""
         with self._transaction() as conn:
+            # Create base tables (chat_id columns included for new DBs)
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS users (
                     username TEXT PRIMARY KEY,
@@ -102,10 +103,7 @@ class SQLiteRepository:
 
                 CREATE INDEX IF NOT EXISTS idx_debts_debtor ON debts(debtor);
                 CREATE INDEX IF NOT EXISTS idx_debts_creditor ON debts(creditor);
-                CREATE INDEX IF NOT EXISTS idx_debts_chat ON debts(chat_id);
                 CREATE INDEX IF NOT EXISTS idx_orders_payer ON orders(payer);
-                CREATE INDEX IF NOT EXISTS idx_orders_chat ON orders(chat_id);
-                CREATE INDEX IF NOT EXISTS idx_payments_chat ON payments(chat_id);
             """)
             
             # Migration: Add created_by column if it doesn't exist
@@ -116,20 +114,31 @@ class SQLiteRepository:
                 conn.execute("ALTER TABLE orders ADD COLUMN created_by TEXT NOT NULL DEFAULT ''")
             
             # Migration: Add chat_id columns if they don't exist
-            try:
-                conn.execute("SELECT chat_id FROM orders LIMIT 1")
-            except sqlite3.OperationalError:
-                conn.execute("ALTER TABLE orders ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0")
-            
-            try:
-                conn.execute("SELECT chat_id FROM debts LIMIT 1")
-            except sqlite3.OperationalError:
-                conn.execute("ALTER TABLE debts ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0")
-            
-            try:
-                conn.execute("SELECT chat_id FROM payments LIMIT 1")
-            except sqlite3.OperationalError:
-                conn.execute("ALTER TABLE payments ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0")
+            chat_columns = [
+                ("orders", "chat_id", "ALTER TABLE orders ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0"),
+                ("debts", "chat_id", "ALTER TABLE debts ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0"),
+                ("payments", "chat_id", "ALTER TABLE payments ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0"),
+            ]
+
+            for table, column, alter_stmt in chat_columns:
+                try:
+                    conn.execute(f"SELECT {column} FROM {table} LIMIT 1")
+                except sqlite3.OperationalError:
+                    conn.execute(alter_stmt)
+
+            # Create chat_id indexes after ensuring columns exist
+            index_statements = [
+                "CREATE INDEX IF NOT EXISTS idx_debts_chat ON debts(chat_id)",
+                "CREATE INDEX IF NOT EXISTS idx_orders_chat ON orders(chat_id)",
+                "CREATE INDEX IF NOT EXISTS idx_payments_chat ON payments(chat_id)",
+            ]
+
+            for stmt in index_statements:
+                try:
+                    conn.execute(stmt)
+                except sqlite3.OperationalError:
+                    # If column still missing for some reason, skip creating the index
+                    pass
 
     # -------------------------------------------------------------------------
     # User operations
