@@ -66,12 +66,14 @@ class Debt:
         debtor: Username who owes money
         creditor: Username who is owed money
         amount: How much is owed
+        description: What the debt is for (e.g., "пицца, суши")
         created_at: When debt was first created
         updated_at: When debt was last modified
     """
     debtor: str
     creditor: str
     amount: Decimal
+    description: str = ""
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
@@ -86,6 +88,7 @@ class Debt:
             debtor=self.debtor,
             creditor=self.creditor,
             amount=new_amount,
+            description=self.description,
             created_at=self.created_at,
             updated_at=datetime.now()
         )

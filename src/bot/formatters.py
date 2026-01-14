@@ -32,7 +32,11 @@ def format_debt_list(debts_result: dict) -> str:
     for debt in debts:
         creditor = debt['creditor']
         amount = debt['amount']
-        lines.append(f"  → @{creditor}: {amount:.0f} ₽")
+        description = debt.get('description', '')
+        if description:
+            lines.append(f"  → @{creditor}: {amount:.0f} ₽ ({description})")
+        else:
+            lines.append(f"  → @{creditor}: {amount:.0f} ₽")
 
     total = debts_result.get('total', Decimal('0'))
     lines.append(f"\n💰 Итого: {total:.0f} ₽")
@@ -63,7 +67,11 @@ def format_owed_list(owed_result: dict) -> str:
     for debt in debts:
         debtor = debt['debtor']
         amount = debt['amount']
-        lines.append(f"  ← @{debtor}: {amount:.0f} ₽")
+        description = debt.get('description', '')
+        if description:
+            lines.append(f"  ← @{debtor}: {amount:.0f} ₽ ({description})")
+        else:
+            lines.append(f"  ← @{debtor}: {amount:.0f} ₽")
 
     total = owed_result.get('total', Decimal('0'))
     lines.append(f"\n💰 Итого: {total:.0f} ₽")
@@ -87,6 +95,7 @@ def format_order_confirmation(order: Order) -> str:
         f"✅ Заказ создан!\n\n"
         f"📝 {order.description}\n"
         f"💵 Сумма: {order.amount:.0f} ₽\n"
+        f"💳 Оплатил: @{order.payer}\n"
         f"👥 Участники: {participants_str}\n"
         f"💰 На каждого: {order.per_person_amount:.2f} ₽"
     )
@@ -138,8 +147,10 @@ def format_welcome() -> str:
     return (
         "👋 Привет! Я бот для учёта совместных расходов.\n\n"
         "📖 Как пользоваться:\n\n"
-        "1️⃣ Создать заказ:\n"
+        "1️⃣ Создать заказ (вы платите):\n"
         "   пицца 3000 @ivan @petya @masha\n\n"
+        "1️⃣ Создать заказ (кто-то другой платит):\n"
+        "   пицца 3000 payer:@ivan @petya @masha\n\n"
         "2️⃣ Отметить оплату:\n"
         "   /paid @ivan 1000\n\n"
         "3️⃣ Посмотреть долги:\n"
@@ -155,7 +166,11 @@ def format_help() -> str:
         "📖 Команды бота:\n\n"
         "📝 Создание заказа:\n"
         "   описание сумма @участник1 @участник2 ...\n"
-        "   Пример: пицца 3000 @ivan @petya\n\n"
+        "   Пример: пицца 3000 @ivan @petya\n"
+        "   💡 Вы автоматически становитесь плательщиком\n\n"
+        "   Указать другого плательщика:\n"
+        "   пицца 3000 payer:@ivan @petya @masha\n"
+        "   💡 @ivan заплатил, остальные ему должны\n\n"
         "💸 Оплата долга:\n"
         "   /paid @кому сумма\n"
         "   Пример: /paid @ivan 1000\n\n"
@@ -189,7 +204,11 @@ def format_all_debts(debts_result: dict) -> str:
         debtor = debt['debtor']
         creditor = debt['creditor']
         amount = debt['amount']
-        lines.append(f"  @{debtor} → @{creditor}: {amount:.0f} ₽")
+        description = debt.get('description', '')
+        if description:
+            lines.append(f"  @{debtor} → @{creditor}: {amount:.0f} ₽ ({description})")
+        else:
+            lines.append(f"  @{debtor} → @{creditor}: {amount:.0f} ₽")
 
     total = debts_result.get('total', Decimal('0'))
     lines.append(f"\n💰 Общая сумма: {total:.0f} ₽")

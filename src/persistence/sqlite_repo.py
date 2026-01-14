@@ -78,6 +78,7 @@ class SQLiteRepository:
                     debtor TEXT NOT NULL,
                     creditor TEXT NOT NULL,
                     amount TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     PRIMARY KEY (debtor, creditor),
@@ -208,12 +209,13 @@ class SQLiteRepository:
 
             conn.execute("""
                 INSERT OR REPLACE INTO debts
-                (debtor, creditor, amount, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?)
+                (debtor, creditor, amount, description, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
             """, (
                 debt.debtor,
                 debt.creditor,
                 str(debt.amount),
+                debt.description,
                 debt.created_at.isoformat(),
                 debt.updated_at.isoformat()
             ))
@@ -234,6 +236,7 @@ class SQLiteRepository:
                 debtor=row['debtor'],
                 creditor=row['creditor'],
                 amount=Decimal(row['amount']),
+                description=row['description'] if 'description' in row.keys() else '',
                 created_at=datetime.fromisoformat(row['created_at']),
                 updated_at=datetime.fromisoformat(row['updated_at'])
             )
@@ -250,6 +253,7 @@ class SQLiteRepository:
                     debtor=row['debtor'],
                     creditor=row['creditor'],
                     amount=Decimal(row['amount']),
+                    description=row['description'] if 'description' in row.keys() else '',
                     created_at=datetime.fromisoformat(row['created_at']),
                     updated_at=datetime.fromisoformat(row['updated_at'])
                 )
@@ -268,6 +272,7 @@ class SQLiteRepository:
                     debtor=row['debtor'],
                     creditor=row['creditor'],
                     amount=Decimal(row['amount']),
+                    description=row['description'] if 'description' in row.keys() else '',
                     created_at=datetime.fromisoformat(row['created_at']),
                     updated_at=datetime.fromisoformat(row['updated_at'])
                 )
@@ -283,6 +288,7 @@ class SQLiteRepository:
                     debtor=row['debtor'],
                     creditor=row['creditor'],
                     amount=Decimal(row['amount']),
+                    description=row['description'] if 'description' in row.keys() else '',
                     created_at=datetime.fromisoformat(row['created_at']),
                     updated_at=datetime.fromisoformat(row['updated_at'])
                 )

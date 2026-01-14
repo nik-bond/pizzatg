@@ -50,7 +50,7 @@ def parse_order_command(text: str) -> ParsedOrder:
 
     Formats supported:
     - "пицца 3000 @ivan @petya @masha" (with description, sender is payer)
-    - "пицца 3000 paid:@ivan @petya @masha" (explicit payer)
+    - "пицца 3000 payer:@ivan @petya @masha" (explicit payer)
     - "3000 @ivan @petya" (without description)
 
     Args:
@@ -62,13 +62,13 @@ def parse_order_command(text: str) -> ParsedOrder:
     Raises:
         ParseError: If message format is invalid
     """
-    # Check for explicit payer with paid:@username syntax
+    # Check for explicit payer with payer:@username syntax
     payer = None
-    payer_match = re.search(r'paid:@?(\w+)', text, re.IGNORECASE)
+    payer_match = re.search(r'payer:@?(\w+)', text, re.IGNORECASE)
     if payer_match:
         payer = normalize_username(payer_match.group(1))
-        # Remove paid:@username from text for further parsing
-        text = re.sub(r'paid:@?\w+', '', text, flags=re.IGNORECASE).strip()
+        # Remove payer:@username from text for further parsing
+        text = re.sub(r'payer:@?\w+', '', text, flags=re.IGNORECASE).strip()
 
     # Find all @mentions (excluding the payer we already extracted)
     mentions = re.findall(r'@(\w+)', text)

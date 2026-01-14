@@ -142,11 +142,14 @@ class DebtService:
             existing = self._repo.get_debt(participant, order.payer)
 
             if existing:
-                # Add to existing debt
+                # Add to existing debt, accumulate descriptions
+                descriptions = [existing.description, order.description] if existing.description else [order.description]
+                combined_description = ", ".join(d for d in descriptions if d)
                 new_debt = Debt(
                     debtor=participant,
                     creditor=order.payer,
                     amount=existing.amount + order.per_person_amount,
+                    description=combined_description,
                     created_at=existing.created_at
                 )
             else:
@@ -154,7 +157,8 @@ class DebtService:
                 new_debt = Debt(
                     debtor=participant,
                     creditor=order.payer,
-                    amount=order.per_person_amount
+                    amount=order.per_person_amount,
+                    description=order.description
                 )
 
             self._repo.save_debt(new_debt)
@@ -201,7 +205,7 @@ class DebtService:
 
         return {
             'debts': [
-                {'creditor': d.creditor, 'amount': d.amount}
+                {'creditor': d.creditor, 'amount': d.amount, 'description': d.description}
                 for d in active_debts
             ],
             'total': sum((d.amount for d in active_debts), Decimal('0')),
@@ -228,7 +232,7 @@ class DebtService:
 
         return {
             'debts': [
-                {'debtor': d.debtor, 'amount': d.amount}
+                {'debtor': d.debtor, 'amount': d.amount, 'description': d.description}
                 for d in active_debts
             ],
             'total': sum((d.amount for d in active_debts), Decimal('0')),
@@ -251,7 +255,8 @@ class DebtService:
                 {
                     'debtor': d.debtor,
                     'creditor': d.creditor,
-                    'amount': d.amount
+                    'amount': d.amount,
+                    'description': d.description
                 }
                 for d in active_debts
             ],
