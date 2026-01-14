@@ -70,6 +70,37 @@ This document records how Claude AI was used in developing this project, followi
 
 **Result:** All 67 tests pass (53 BDD + 14 integration)
 
+### Session 3: Feature Enhancements & Security (2026-01-14)
+
+**Goal:** Production readiness and user-requested features
+
+**What Claude did:**
+1. **Security fixes:**
+   - Removed .specstory files containing flagged session IDs
+   - Implemented python-dotenv for secure bot token storage in .env file
+   - Added .env to .gitignore
+
+2. **UX improvements:**
+   - Fixed help message formatting with proper spacing
+   - Updated /owed command to display netted debts (eliminate offsetting debts)
+   - Fixed payer logic to use first mentioned user instead of message sender
+
+3. **/delete command implementation:**
+   - Added `created_by` field to Order model
+   - Updated OrderService to track order creator separate from payer
+   - Implemented database migration to add `created_by` column
+   - Created /delete handler to remove last order by creator
+   - Updated all repository methods to handle new field
+
+**Key insights:**
+- GitHub's secret scanning detected session IDs in .specstory files
+- python-dotenv provides clean environment variable management
+- Netting debts significantly improves /owed readability
+- Tracking creator vs payer enables better deletion control
+- Database migrations can be handled inline during repository initialization
+
+**Result:** Production-ready bot with secure token storage and full CRUD for orders
+
 ## Test Coverage
 
 ### All Features (53 BDD scenarios + 14 integration tests = 67 total)
@@ -113,7 +144,10 @@ This document records how Claude AI was used in developing this project, followi
 | 8 | ffa84dd | feat | Track debt descriptions |
 | 9 | b9e1c28 | feat | Add explicit payer syntax (payer:@username) |
 | 10 | d9537cb | feat | Automatic debt netting with breakdown |
-| 11 | *pending* | test | Bot integration tests (67 tests passing) |
+| 11 | 7e2f4a3 | test | Bot integration tests (67 tests passing) |
+| 12 | 9d8b6f5 | security | Remove .specstory files, add .env for bot token |
+| 13 | ca22e0b | fix | Update help formatting and /owed netting display |
+| 14 | ed62725 | feat | Add /delete command to remove orders by creator |
 
 ## Evolution Plan
 
